@@ -2,34 +2,42 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [VitePWA({
-    registerType: 'prompt',
-    injectRegister: false,
+export default defineConfig(({ mode }) => {
+  
+  // 2. Define the conditional base path
+  // If we run "vite build --mode github", use the repo path.
+  // Otherwise, use '/' (default).
+  const base = mode === 'github' ? '/bible-pwa-gh-page/' : '/';
 
-    pwaAssets: {
-      disabled: false,
-      config: true,
-    },
+  return {
+    base,
+    plugins: [VitePWA({
+      registerType: 'prompt',
+      injectRegister: false,
 
-    manifest: {
-      name: 'bible-pwa',
-      short_name: 'bible-pwa',
-      description: 'bible-pwa',
-      theme_color: '#ffffff',
-    },
+      pwaAssets: {
+        disabled: false,
+        config: true,
+      },
 
-    workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-      cleanupOutdatedCaches: true,
-      clientsClaim: true,
-    },
+      manifest: {
+        name: 'bible-pwa',
+        short_name: 'bible-pwa',
+        description: 'bible-pwa',
+        theme_color: '#ffffff',
+      },
 
-    devOptions: {
-      enabled: false,
-      navigateFallback: 'index.html',
-      suppressWarnings: true,
-      type: 'module',
-    },
-  })],
-})
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+      },
+
+      devOptions: {
+        enabled: false,
+        navigateFallback: 'index.html',
+        suppressWarnings: true,
+        type: 'module',
+      },
+    })],
+  }})
