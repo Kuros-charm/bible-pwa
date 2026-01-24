@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" >
+  <title>bible-pwa</title>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/idb-keyval@6/dist/umd.js"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- <script src="src/bible.js"></script> -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Hide elements until Alpine.js is ready */
+    [x-cloak] {
+      display: none !important;
+    }
+
+    :root {
+      --bg-primary: #faf8f5;
+      --bg-secondary: #f0ebe3;
+      --text-primary: #2c2416;
+      --text-secondary: #6b5d4d;
+      --accent: #8b4513;
+      --accent-light: #d4a574;
+      --border: #e0d5c7;
+    }
+
+    .dark {
+      --bg-primary: #1a1612;
+      --bg-secondary: #2a2420;
+      --text-primary: #e8e0d5;
+      --text-secondary: #a89a88;
+      --accent: #d4a574;
+      --accent-light: #8b6543;
+      --border: #3d352d;
+    }
+
+    body {
+      font-family: 'Noto Serif TC', serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .bg-primary {
+      background-color: var(--bg-primary);
+    }
+
+    .bg-secondary {
+      background-color: var(--bg-secondary);
+    }
+
+    .text-primary {
+      color: var(--text-primary);
+    }
+
+    .text-secondary {
+      color: var(--text-secondary);
+    }
+
+    .text-accent {
+      color: var(--accent);
+    }
+
+    .border-custom {
+      border-color: var(--border);
+    }
+
+    .accent-bg {
+      background-color: var(--accent);
+    }
+
+    .accent-light-bg {
+      background-color: var(--accent-light);
+    }
+
+    .verse-number {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: var(--accent-light);
+      border-radius: 3px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    .verse-item {
+      opacity: 0;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    .custom-title {
+      color: var(--accent);
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      background: linear-gradient(90deg, var(--accent-light), transparent);
+      border-left: 3px solid var(--accent);
+      margin-bottom: 0.5rem;
+      border-radius: 0 0.25rem 0.25rem 0;
+    }
+
+    .context-menu {
+      position: fixed;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 100;
+      min-width: 150px;
+      overflow: hidden;
+    }
+
+    .context-menu-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .context-menu-item:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .modal-content {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .verse-container {
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+    }
+
+    .verse-container:active {
+      background-color: var(--bg-primary);
+      border-radius: 0.5rem;
+    }
+
+    .note-icon {
+      font-size: 1rem;
+      opacity: 0.7;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .note-icon:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen" x-data="bibleReader()">
+  <script type="module" src="./src/main.js"></script>
+
+  <div id="app">
+      <!-- Header -->
+  <header class="bg-secondary border-b border-custom sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl md:text-2xl font-bold text-accent">📖 聖經閱讀器</h1>
+      <button @click="toggleDarkMode()" class="p-2 rounded-full hover:bg-primary transition-colors"
+        :title="isDark ? '切換淺色模式' : '切換深色模式'">
+        <span x-show="!isDark" class="text-xl">🌙</span>
+        <span x-show="isDark" class="text-xl">☀️</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-6">
+    <!-- Navigation -->
+    <div class="bg-secondary rounded-xl p-4 mb-6 border border-custom">
+      <div class="flex flex-wrap gap-3">
+        <!-- Book Selector -->
+        <div class="flex-1 min-w-[150px]">
+          <label class="block text-sm text-secondary mb-1">書卷</label>
+          <select x-model="selectedBook" @change="onBookChange()"
+            class="w-full px-3 py-2 rounded-lg bg-primary border border-custom text-primary focus:outline-none focus:ring-2 focus:ring-amber-600 text-base">
+            <template x-for="(book, idx) in books" :key="'book-' + idx">
+              <option :value="book" x-text="book"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Chapter Selector -->
+        <div class="flex-1 min-w-[120px]">
+          <label class="block text-sm text-secondary mb-1">章</label>
+          <select x-model="selectedChapter" @change="loadVerses()"
+            class="w-full px-3 py-2 rounded-lg bg-primary border border-custom text-primary focus:outline-none focus:ring-2 focus:ring-amber-600 text-base">
+            <template x-for="(chapter, idx) in chapters" :key="'ch-' + idx">
+              <option :value="chapter" x-text="'第 ' + chapter + ' 章'"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <!-- Chapter Navigation -->
+      <div class="flex justify-between items-center mt-4 pt-4 border-t border-custom">
+        <button @click="prevChapter()" :disabled="!canGoPrev"
+          :class="canGoPrev ? 'hover:bg-primary' : 'opacity-40 cursor-not-allowed'"
+          class="flex items-center gap-1 px-4 py-2 rounded-lg transition-colors text-secondary">
+          <span>←</span>
+          <span class="hidden sm:inline">上一章</span>
+        </button>
+
+        <span class="text-accent font-semibold" x-text="selectedBook + ' ' + selectedChapter + ' 章'"></span>
+
+        <button @click="nextChapter()" :disabled="!canGoNext"
+          :class="canGoNext ? 'hover:bg-primary' : 'opacity-40 cursor-not-allowed'"
+          class="flex items-center gap-1 px-4 py-2 rounded-lg transition-colors text-secondary">
+          <span class="hidden sm:inline">下一章</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="mb-6">
+      <div class="relative">
+        <input type="text" x-model="searchQuery" @input="search()" placeholder="搜尋經文..."
+          class="w-full px-4 py-3 pl-10 rounded-xl bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600 text-base">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-secondary">🔍</span>
+        <button x-show="searchQuery" @click="clearSearch()"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary">✕</button>
+      </div>
+    </div>
+
+    <!-- Verses Display -->
+    <div class="bg-secondary rounded-xl p-6 border border-custom min-h-[400px]">
+      <!-- Search Results -->
+      <template x-if="searchQuery && searchResults.length > 0">
+        <div>
+          <h2 class="text-lg font-semibold text-accent mb-4">
+            搜尋結果 (<span x-text="searchResults.length"></span> 筆)
+          </h2>
+          <div class="space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin pr-2">
+            <template x-for="(verse, index) in searchResults.slice(0, 100)" :key="'search-' + index">
+              <div
+                class="verse-item p-4 bg-primary rounded-lg border border-custom cursor-pointer hover:border-amber-600 transition-colors"
+                :style="'animation-delay: ' + (index * 30) + 'ms'" @click="goToVerse(verse)">
+                <span class="verse-number text-sm" x-text="verse.ref"></span>
+                <p class="mt-1 text-primary leading-relaxed" x-text="verse.text"></p>
+              </div>
+            </template>
+          </div>
+          <p x-show="searchResults.length > 100" class="mt-4 text-secondary text-sm text-center">
+            顯示前 100 筆結果，共 <span x-text="searchResults.length"></span> 筆
+          </p>
+        </div>
+      </template>
+
+      <!-- No Search Results -->
+      <template x-if="searchQuery && searchResults.length === 0">
+        <div class="flex flex-col items-center justify-center py-16 text-secondary">
+          <span class="text-4xl mb-4">📭</span>
+          <p>找不到符合的經文</p>
+        </div>
+      </template>
+
+      <!-- Chapter Verses -->
+      <template x-if="!searchQuery">
+        <div>
+          <div class="space-y-4">
+            <template x-for="(verse, index) in currentVerses" :key="'verse-' + index">
+              <div class="verse-item leading-relaxed text-lg verse-container p-2 -mx-2 rounded-lg"
+                :style="'animation-delay: ' + (index * 50) + 'ms'" @mousedown="startLongPress($event, verse)"
+                @mouseup="cancelLongPress()" @mouseleave="cancelLongPress()"
+                @touchstart.passive="startLongPress($event, verse)" @touchend="cancelLongPress()"
+                @touchmove="cancelLongPress()" @contextmenu.prevent="showContextMenu($event, verse)">
+                <!-- Custom Title -->
+                <div x-show="customTitles[verse.ref]" class="custom-title" x-text="customTitles[verse.ref]"></div>
+                <!-- Verse Content -->
+                <div class="flex items-start gap-2">
+                  <div class="flex-1">
+                    <span class="verse-number mr-2" x-text="verse.verseNum"></span>
+                    <span x-text="verse.text"></span>
+                  </div>
+                  <!-- Note Icon -->
+                  <button x-show="notes[verse.ref]" @click.stop="openNoteModal(verse)"
+                    class="note-icon flex-shrink-0 p-1 rounded hover:bg-primary transition-colors" title="查看筆記">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Empty State -->
+          <div x-show="currentVerses.length === 0 && !isLoading"
+            class="flex flex-col items-center justify-center py-16 text-secondary">
+            <span class="text-4xl mb-4">📖</span>
+            <p>選擇書卷和章節開始閱讀</p>
+          </div>
+
+          <!-- Loading State -->
+          <div x-show="isLoading" class="flex flex-col items-center justify-center py-16 text-secondary">
+            <div class="relative mb-4">
+              <span class="text-4xl animate-pulse">📥</span>
+            </div>
+            <p class="font-medium text-primary mb-2" x-text="loadingMessage"></p>
+            <p x-show="loadingSubMessage" class="text-sm" x-text="loadingSubMessage"></p>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Footer Info -->
+    <div class="mt-6 text-center text-secondary text-sm">
+      <p>共 <span x-text="totalVerses"></span> 節經文</p>
+    </div>
+  </main>
+
+  <!-- Context Menu -->
+  <div x-cloak x-show="contextMenu.show" x-transition:enter="transition ease-out duration-100"
+    x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+    x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-95" class="context-menu"
+    :style="'top: ' + contextMenu.y + 'px; left: ' + contextMenu.x + 'px;'" @click.outside="closeContextMenu()">
+    <div class="context-menu-item text-primary" @click="openTitleModal()">
+      <span>🏷️</span>
+      <span>自訂標題</span>
+    </div>
+    <div class="context-menu-item text-primary" @click="openNoteModal()">
+      <span>📝</span>
+      <span>筆記</span>
+    </div>
+  </div>
+
+  <!-- Title Input Modal -->
+  <div x-cloak x-show="titleModal.show" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="closeTitleModal()">
+    <div class="modal-content" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+      <h3 class="text-lg font-semibold text-accent mb-2">自訂標題</h3>
+      <p class="text-secondary text-sm mb-4" x-text="titleModal.verse?.ref"></p>
+      <input type="text" x-model="titleModal.title" x-ref="titleInput" @keydown.enter="saveTitle()"
+        @keydown.escape="closeTitleModal()" placeholder="輸入標題..."
+        class="w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600 text-base mb-4">
+      <div class="flex justify-end gap-3">
+        <button @click="closeTitleModal()"
+          class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
+          取消
+        </button>
+        <button @click="saveTitle()" class="px-4 py-2 rounded-lg text-white transition-colors"
+          style="background-color: var(--accent);">
+          儲存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Input Modal -->
+  <div x-cloak x-show="noteModal.show" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="closeNoteModal()">
+    <div class="modal-content" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+      <h3 class="text-lg font-semibold text-accent mb-2">📝 筆記</h3>
+      <p class="text-secondary text-sm mb-4" x-text="noteModal.verse?.ref"></p>
+      <textarea x-model="noteModal.note" x-ref="noteInput" @keydown.escape="closeNoteModal()" placeholder="輸入筆記..."
+        rows="5"
+        class="w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600 text-base mb-4 resize-none"></textarea>
+      <div class="flex justify-end gap-3">
+        <button @click="closeNoteModal()"
+          class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
+          取消
+        </button>
+        <button @click="saveNote()" class="px-4 py-2 rounded-lg text-white transition-colors"
+          style="background-color: var(--accent);">
+          儲存
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+    <div id="pwa-toast" role="alert" aria-labelledby="toast-message"
+      class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-secondary border border-custom rounded-xl p-4 shadow-lg z-[300] hidden">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">🔄</span>
+        <div class="flex-1">
+          <p id="toast-message" class="text-primary font-medium"></p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button id="pwa-close" type="button"
+          class="px-4 py-2 rounded-lg text-secondary hover:bg-primary transition-colors text-sm">
+          Close
+        </button>
+        <button id="pwa-refresh" type="button"
+          class="px-4 py-2 rounded-lg text-white transition-colors text-sm"
+          style="background-color: var(--accent);">
+          Reload
+        </button>
+      </div>
+    </div>
+
+
+  </div>
+
+
+
+  <script>
+    function bibleReader() {
+      return {
+        isDark: false,
+        allVerses: [],
+        books: [],
+        chapters: [],
+        selectedBook: '',
+        selectedChapter: 1,
+        currentVerses: [],
+        searchQuery: '',
+        searchResults: [],
+        totalVerses: 0,
+        bibleData: {},
+        customTitles: {},
+        notes: {},
+        longPressTimer: null,
+        longPressDuration: 500,
+        isLoading: false,
+        loadingMessage: '',
+        loadingSubMessage: '',
+        contextMenu: {
+          show: false,
+          x: 0,
+          y: 0,
+          verse: null
+        },
+        titleModal: {
+          show: false,
+          verse: null,
+          title: ''
+        },
+        noteModal: {
+          show: false,
+          verse: null,
+          note: ''
+        },
+
+        async init() {
+          // Check dark mode preference
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            this.isDark = true;
+            document.documentElement.classList.add('dark');
+          }
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            this.isDark = event.matches;
+            document.documentElement.classList.toggle('dark', event.matches);
+          });
+
+          // Load saved data from IndexedDB
+          await this.loadFromStorage();
+
+          await this.parseVerses();
+        },
+
+        // IndexedDB helpers using idb-keyval
+        async loadFromStorage() {
+          try {
+            const [savedTitles, savedNotes, savedBook, savedChapter] = await Promise.all([
+              idbKeyval.get('bible_customTitles'),
+              idbKeyval.get('bible_notes'),
+              idbKeyval.get('bible_selectedBook'),
+              idbKeyval.get('bible_selectedChapter')
+            ]);
+
+            if (savedTitles) {
+              this.customTitles = savedTitles;
+            }
+            if (savedNotes) {
+              this.notes = savedNotes;
+            }
+            if (savedBook) {
+              this._pendingBook = savedBook;
+            }
+            if (savedChapter) {
+              this._pendingChapter = savedChapter;
+            }
+          } catch (e) {
+            console.warn('Failed to load from IndexedDB:', e);
+          }
+        },
+
+        async saveCustomTitles() {
+          try {
+            // Clone to plain object to avoid DataCloneError with Alpine proxies
+            await idbKeyval.set('bible_customTitles', JSON.parse(JSON.stringify(this.customTitles)));
+          } catch (e) {
+            console.warn('Failed to save custom titles:', e);
+          }
+        },
+
+        async saveNotes() {
+          try {
+            // Clone to plain object to avoid DataCloneError with Alpine proxies
+            await idbKeyval.set('bible_notes', JSON.parse(JSON.stringify(this.notes)));
+          } catch (e) {
+            console.warn('Failed to save notes:', e);
+          }
+        },
+
+        async saveReadingPosition() {
+          try {
+            await Promise.all([
+              idbKeyval.set('bible_selectedBook', this.selectedBook),
+              idbKeyval.set('bible_selectedChapter', this.selectedChapter)
+            ]);
+          } catch (e) {
+            console.warn('Failed to save reading position:', e);
+          }
+        },
+
+        async parseVerses() {
+          let profiles;
+
+          // Try to load from IndexedDB cache first
+          try {
+            const cachedData = await idbKeyval.get('bible_verses_cache');
+            if (cachedData) {
+              this.isLoading = true;
+              this.loadingMessage = '正在載入經文...';
+              this.loadingSubMessage = '從快取讀取';
+              profiles = cachedData;
+              // Small delay to show loading state
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          } catch (e) {
+            console.warn('Failed to read from cache:', e);
+          }
+
+          // If not cached, fetch from network
+          if (!profiles) {
+            this.isLoading = true;
+            this.loadingMessage = '首次載入經文資料...';
+            this.loadingSubMessage = '檔案大小約 5MB，請稍候';
+
+            try {
+              const response = await fetch('./uv.json');
+              if (!response.ok) {
+                throw new Error(`Failed to load uv.json: ${response.status}`);
+              }
+              profiles = await response.json();
+
+              // Cache the data in IndexedDB
+              this.loadingMessage = '正在儲存快取...';
+              this.loadingSubMessage = '下次載入將更快';
+              try {
+                await idbKeyval.set('bible_verses_cache', profiles);
+                console.log('Bible data cached successfully');
+              } catch (cacheError) {
+                console.warn('Failed to cache Bible data:', cacheError);
+              }
+            } catch (error) {
+              console.error('Failed to load Bible data:', error);
+              this.isLoading = false;
+              this.loadingMessage = '';
+              this.loadingSubMessage = '';
+              return;
+            }
+          }
+
+          const bookSet = new Set();
+          const seenRefs = new Set(); // Track seen verse references to prevent duplicates
+
+          profiles.forEach(line => {
+            // Parse format: "創1:1 起初���神創造天地。"
+            const match = line.match(/^(.+?)(\d+):(\d+)\s+(.+)$/);
+            if (match) {
+              const [, book, chapter, verse, text] = match;
+              const ref = `${book}${chapter}:${verse}`;
+
+              // Skip if we've already seen this verse
+              if (seenRefs.has(ref)) {
+                return;
+              }
+              seenRefs.add(ref);
+
+              const chapterNum = parseInt(chapter);
+              const verseNum = parseInt(verse);
+
+              bookSet.add(book);
+
+              if (!this.bibleData[book]) {
+                this.bibleData[book] = {};
+              }
+              if (!this.bibleData[book][chapterNum]) {
+                this.bibleData[book][chapterNum] = [];
+              }
+
+              const verseData = {
+                ref,
+                book,
+                chapter: chapterNum,
+                verseNum,
+                text
+              };
+
+              this.bibleData[book][chapterNum].push(verseData);
+              this.allVerses.push(verseData);
+            }
+          });
+
+          this.totalVerses = this.allVerses.length;
+
+          this.books = Array.from(bookSet);
+
+          // Clear loading state
+          this.isLoading = false;
+          this.loadingMessage = '';
+          this.loadingSubMessage = '';
+
+          if (this.books.length > 0) {
+            // Set initial book (first book as default)
+            this.selectedBook = this.books[0];
+            this.updateChapters();
+            this.loadVerses();
+
+            // Restore saved position after DOM is ready
+            this.$nextTick(() => {
+              let needsReload = false;
+
+              if (this._pendingBook && this.books.includes(this._pendingBook)) {
+                this.selectedBook = this._pendingBook;
+                this.updateChapters();
+                needsReload = true;
+              }
+
+              if (this._pendingChapter && this.chapters.includes(this._pendingChapter)) {
+                this.selectedChapter = this._pendingChapter;
+                needsReload = true;
+              }
+
+              if (needsReload) {
+                this.loadVerses();
+              }
+            });
+          }
+        },
+
+        updateChapters() {
+          if (this.bibleData[this.selectedBook]) {
+            this.chapters = Object.keys(this.bibleData[this.selectedBook])
+              .map(Number)
+              .sort((a, b) => a - b);
+          } else {
+            this.chapters = [];
+          }
+        },
+
+        onBookChange() {
+          this.updateChapters();
+          this.selectedChapter = this.chapters[0] || 1;
+          this.loadVerses();
+          this.saveReadingPosition();
+        },
+
+        loadVerses() {
+          if (this.bibleData[this.selectedBook] && this.bibleData[this.selectedBook][this.selectedChapter]) {
+            this.currentVerses = this.bibleData[this.selectedBook][this.selectedChapter];
+          } else {
+            this.currentVerses = [];
+          }
+          this.saveReadingPosition();
+        },
+
+        get canGoPrev() {
+          const chapterIndex = this.chapters.indexOf(this.selectedChapter);
+          const bookIndex = this.books.indexOf(this.selectedBook);
+          return chapterIndex > 0 || bookIndex > 0;
+        },
+
+        get canGoNext() {
+          const chapterIndex = this.chapters.indexOf(this.selectedChapter);
+          const bookIndex = this.books.indexOf(this.selectedBook);
+          return chapterIndex < this.chapters.length - 1 || bookIndex < this.books.length - 1;
+        },
+
+        prevChapter() {
+          const chapterIndex = this.chapters.indexOf(this.selectedChapter);
+          if (chapterIndex > 0) {
+            this.selectedChapter = this.chapters[chapterIndex - 1];
+            this.loadVerses();
+          } else {
+            const bookIndex = this.books.indexOf(this.selectedBook);
+            if (bookIndex > 0) {
+              this.selectedBook = this.books[bookIndex - 1];
+              this.updateChapters();
+              this.selectedChapter = this.chapters[this.chapters.length - 1];
+              this.loadVerses();
+            }
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        nextChapter() {
+          const chapterIndex = this.chapters.indexOf(this.selectedChapter);
+          if (chapterIndex < this.chapters.length - 1) {
+            this.selectedChapter = this.chapters[chapterIndex + 1];
+            this.loadVerses();
+          } else {
+            const bookIndex = this.books.indexOf(this.selectedBook);
+            if (bookIndex < this.books.length - 1) {
+              this.selectedBook = this.books[bookIndex + 1];
+              this.updateChapters();
+              this.selectedChapter = this.chapters[0];
+              this.loadVerses();
+            }
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        search() {
+          if (!this.searchQuery.trim()) {
+            this.searchResults = [];
+            return;
+          }
+
+          const query = this.searchQuery.toLowerCase();
+          this.searchResults = this.allVerses.filter(verse =>
+            verse.text.toLowerCase().includes(query) ||
+            verse.ref.toLowerCase().includes(query)
+          );
+        },
+
+        clearSearch() {
+          this.searchQuery = '';
+          this.searchResults = [];
+        },
+
+        goToVerse(verse) {
+          this.selectedBook = verse.book;
+          this.updateChapters();
+          this.selectedChapter = verse.chapter;
+          this.loadVerses();
+          this.clearSearch();
+        },
+
+        toggleDarkMode() {
+          this.isDark = !this.isDark;
+          document.documentElement.classList.toggle('dark', this.isDark);
+        },
+
+        // Long press handling
+        startLongPress(event, verse) {
+          this.cancelLongPress();
+          this.longPressTimer = setTimeout(() => {
+            this.showContextMenu(event, verse);
+          }, this.longPressDuration);
+        },
+
+        cancelLongPress() {
+          if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+          }
+        },
+
+        // Context menu
+        showContextMenu(event, verse) {
+          this.cancelLongPress();
+
+          let x, y;
+          if (event.touches && event.touches.length > 0) {
+            x = event.touches[0].clientX;
+            y = event.touches[0].clientY;
+          } else if (event.changedTouches && event.changedTouches.length > 0) {
+            x = event.changedTouches[0].clientX;
+            y = event.changedTouches[0].clientY;
+          } else {
+            x = event.clientX;
+            y = event.clientY;
+          }
+
+          // Adjust position to stay within viewport
+          const menuWidth = 160;
+          const menuHeight = 100;
+          if (x + menuWidth > window.innerWidth) {
+            x = window.innerWidth - menuWidth - 10;
+          }
+          if (y + menuHeight > window.innerHeight) {
+            y = window.innerHeight - menuHeight - 10;
+          }
+
+          this.contextMenu = {
+            show: true,
+            x: Math.max(10, x),
+            y: Math.max(10, y),
+            verse: verse
+          };
+        },
+
+        closeContextMenu() {
+          this.contextMenu.show = false;
+        },
+
+        // Title modal
+        openTitleModal() {
+          const verse = this.contextMenu.verse;
+          this.titleModal = {
+            show: true,
+            verse: verse,
+            title: this.customTitles[verse.ref] || ''
+          };
+          this.closeContextMenu();
+
+          // Focus input after modal opens
+          this.$nextTick(() => {
+            if (this.$refs.titleInput) {
+              this.$refs.titleInput.focus();
+            }
+          });
+        },
+
+        closeTitleModal() {
+          this.titleModal.show = false;
+          this.titleModal.title = '';
+        },
+
+        saveTitle() {
+          const ref = this.titleModal.verse?.ref;
+          if (ref && this.titleModal.title.trim()) {
+            this.customTitles[ref] = this.titleModal.title.trim();
+          } else if (ref) {
+            delete this.customTitles[ref];
+          }
+          this.saveCustomTitles();
+          this.closeTitleModal();
+        },
+
+        // Note modal
+        openNoteModal(verse) {
+          if (!verse) verse = this.contextMenu.verse;
+          this.noteModal = {
+            show: true,
+            verse: verse,
+            note: this.notes[verse.ref] || ''
+          };
+          this.closeContextMenu();
+
+          this.$nextTick(() => {
+            if (this.$refs.noteInput) {
+              this.$refs.noteInput.focus();
+            }
+          });
+        },
+
+        closeNoteModal() {
+          this.noteModal.show = false;
+          this.noteModal.note = '';
+        },
+
+        saveNote() {
+          const ref = this.noteModal.verse?.ref;
+          if (ref && this.noteModal.note.trim()) {
+            this.notes[ref] = this.noteModal.note.trim();
+          } else if (ref) {
+            delete this.notes[ref];
+          }
+          this.saveNotes();
+          this.closeNoteModal();
+        }
+      };
+    }
+  </script>
+</body>
+
+</html>
