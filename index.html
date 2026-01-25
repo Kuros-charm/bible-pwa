@@ -1295,7 +1295,8 @@
           tab: 'chapters',  // 'books' or 'chapters'
           testament: 'old', // 'old' or 'new'
           category: 'pentateuch',  // category filter
-          chapterRange: 0  // chapter range filter index (0 = first range)
+          chapterRange: 0,  // chapter range filter index (0 = first range)
+          isScrolling: false  // flag to prevent scroll handler during programmatic scroll
         },
         verseActions: {
           show: false,
@@ -1749,6 +1750,10 @@
           const ranges = this.chapterRanges;
           if (rangeIdx < 0 || rangeIdx >= ranges.length) return;
 
+          // Set flag to prevent scroll handler from overriding selection
+          this.navModal.isScrolling = true;
+          this.navModal.chapterRange = rangeIdx;
+
           const firstButton = grid.querySelector('button');
           if (!firstButton) return;
 
@@ -1767,12 +1772,17 @@
             behavior: smooth ? 'smooth' : 'auto'
           });
 
-          this.navModal.chapterRange = rangeIdx;
+          // Clear flag after scroll animation completes
+          setTimeout(() => {
+            this.navModal.isScrolling = false;
+          }, smooth ? 350 : 50);
         },
 
         // Handle chapter grid scroll to sync range selection
         onChapterGridScroll() {
           if (!this.showChapterRanges) return;
+          // Skip if programmatic scroll is in progress
+          if (this.navModal.isScrolling) return;
 
           const grid = this.$refs.chapterGrid;
           if (!grid) return;
@@ -2735,7 +2745,7 @@
             this.settingsModal.isError = false;
           } catch (e) {
             console.error('Failed to clear cache:', e);
-            this.settingsModal.message = '���除快取失敗：' + e.message;
+            this.settingsModal.message = '清除快取失敗：' + e.message;
             this.settingsModal.isError = true;
           }
         },
