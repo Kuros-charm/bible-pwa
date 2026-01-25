@@ -5,7 +5,7 @@ export function initPWA(app) {
     /**@type {HTMLDivElement}*/
     const pwaToast = app.querySelector('#pwa-toast')
     /**@type {HTMLDivElement}*/
-    const pwaToastMessage = pwaToast.querySelector('.message #toast-message')
+    const pwaToastMessage = pwaToast.querySelector('#toast-message')  // Fixed: removed .message
     /**@type {HTMLButtonElement}*/
     const pwaCloseBtn = pwaToast.querySelector('#pwa-close')
     /**@type {HTMLButtonElement}*/
@@ -22,26 +22,23 @@ export function initPWA(app) {
             requestAnimationFrame(() => hidePwaToast(false))
             return
         }
-        if (pwaToast.classList.contains('refresh'))
-            pwaRefreshBtn.removeEventListener('click', refreshCallback)
-
-        pwaToast.classList.remove('show', 'refresh')
+        pwaRefreshBtn.removeEventListener('click', refreshCallback)
+        pwaToast.classList.add('hidden')  // Fixed: use hidden class
     }
+
     /**@param offline {boolean}*/
     function showPwaToast(offline) {
-        if (!offline)
+        if (!offline) {
             pwaRefreshBtn.addEventListener('click', refreshCallback)
+        }
         requestAnimationFrame(() => {
-            hidePwaToast(false)
-            if (!offline)
-                pwaToast.classList.add('refresh')
-            pwaToast.classList.add('show')
+            pwaToast.classList.remove('hidden')  // Fixed: use hidden class
         })
     }
 
     let swActivated = false
     // periodic sync is disabled, change the value to enable it, the period is in milliseconds
-   // You can remove onRegisteredSW callback and registerPeriodicSync function
+    // You can remove onRegisteredSW callback and registerPeriodicSync function
     const period = 0
 
     window.addEventListener('load', () => {
@@ -49,11 +46,11 @@ export function initPWA(app) {
         refreshSW = registerSW({
             immediate: true,
             onOfflineReady() {
-                pwaToastMessage.innerHTML = 'App ready to work offline'
+                pwaToastMessage.innerHTML = '已可離線使用'
                 showPwaToast(true)
             },
             onNeedRefresh() {
-                pwaToastMessage.innerHTML = 'New content available, click on reload button to update'
+                pwaToastMessage.innerHTML = '有新版本可用，請點擊重新載入'
                 showPwaToast(false)
             },
             onRegisteredSW(swUrl, r) {
