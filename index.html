@@ -1686,6 +1686,7 @@
         },
 
         // Get chapter range options (e.g., [{start: 1, end: 20, label: "1-20"}, ...])
+        // If last group has fewer than 20 chapters, merge with previous group
         get chapterRanges() {
           if (!this.showChapterRanges) return [];
           const ranges = [];
@@ -1698,6 +1699,17 @@
               end,
               label: `${start}-${end}`
             });
+          }
+          // Merge last group if it has fewer than 20 chapters
+          if (ranges.length >= 2) {
+            const lastRange = ranges[ranges.length - 1];
+            const lastRangeSize = lastRange.end - lastRange.start + 1;
+            if (lastRangeSize < rangeSize) {
+              // Merge with previous range
+              ranges.pop();
+              ranges[ranges.length - 1].end = maxChapter;
+              ranges[ranges.length - 1].label = `${ranges[ranges.length - 1].start}-${maxChapter}`;
+            }
           }
           return ranges;
         },
@@ -1737,19 +1749,17 @@
           const ranges = this.chapterRanges;
           if (rangeIdx < 0 || rangeIdx >= ranges.length) return;
 
-          // Each range is 20 chapters, 5 per row = 4 rows per range
-          // Calculate row height from first button
           const firstButton = grid.querySelector('button');
           if (!firstButton) return;
 
-          const buttonStyle = window.getComputedStyle(firstButton);
           const buttonHeight = firstButton.offsetHeight;
           const gap = parseFloat(window.getComputedStyle(grid.querySelector('.grid')).gap) || 8;
           const rowHeight = buttonHeight + gap;
 
-          // Each range = 20 chapters = 4 rows (5 chapters per row)
-          const rowsPerRange = 4;
-          const targetRow = rangeIdx * rowsPerRange;
+          // Calculate target row based on range start chapter
+          // 5 chapters per row, so row = (chapter - 1) / 5
+          const targetChapter = ranges[rangeIdx].start;
+          const targetRow = Math.floor((targetChapter - 1) / 5);
           const scrollTop = targetRow * rowHeight;
 
           grid.scrollTo({
@@ -1774,17 +1784,17 @@
           const gap = parseFloat(window.getComputedStyle(grid.querySelector('.grid')).gap) || 8;
           const rowHeight = buttonHeight + gap;
 
-          // 4 rows per range (20 chapters / 5 per row)
-          const rowsPerRange = 4;
-          const rangeHeight = rowsPerRange * rowHeight;
-
-          // Calculate which range is most visible
+          // Calculate which chapter is at top of visible area
           const scrollTop = grid.scrollTop;
-          const currentRange = Math.floor((scrollTop + rowHeight) / rangeHeight);
+          const topRow = Math.floor(scrollTop / rowHeight);
+          const topChapter = topRow * 5 + 1; // 5 chapters per row
 
+          // Find which range contains this chapter
           const ranges = this.chapterRanges;
-          if (currentRange >= 0 && currentRange < ranges.length) {
-            this.navModal.chapterRange = currentRange;
+          const rangeIdx = ranges.findIndex(r => topChapter >= r.start && topChapter <= r.end);
+
+          if (rangeIdx >= 0 && rangeIdx < ranges.length) {
+            this.navModal.chapterRange = rangeIdx;
           }
         },
 
@@ -2725,7 +2735,7 @@
             this.settingsModal.isError = false;
           } catch (e) {
             console.error('Failed to clear cache:', e);
-            this.settingsModal.message = '清除快取失敗：' + e.message;
+            this.settingsModal.message = '���除快取失敗：' + e.message;
             this.settingsModal.isError = true;
           }
         },
