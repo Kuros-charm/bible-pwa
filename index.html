@@ -12,13 +12,12 @@
   <script src="https://unpkg.com/idb-keyval@6/dist/umd.js"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- <script src="src/bible.js"></script> -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Hide elements until Alpine.js is ready */
-    [x-cloak] {
-      display: none !important;
-    }
+    /* === Essential: Alpine.js cloak === */
+    [x-cloak] { display: none !important; }
 
+    /* === Theme: CSS Variables === */
     :root {
       --bg-primary: #faf8f5;
       --bg-secondary: #f0ebe3;
@@ -28,7 +27,6 @@
       --accent-light: #d4a574;
       --border: #e0d5c7;
     }
-
     .dark {
       --bg-primary: #1a1612;
       --bg-secondary: #2a2420;
@@ -39,160 +37,51 @@
       --border: #3d352d;
     }
 
-    body {
-      font-family: 'Noto Serif TC', serif;
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      transition: background-color 0.3s, color 0.3s;
-    }
+    /* === Theme: Utility classes using CSS vars === */
+    body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+    .bg-primary { background-color: var(--bg-primary); }
+    .bg-secondary { background-color: var(--bg-secondary); }
+    .text-primary { color: var(--text-primary); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-accent { color: var(--accent); }
+    .border-custom { border-color: var(--border); }
 
-    .bg-primary {
-      background-color: var(--bg-primary);
-    }
+    /* === Scrollbar (no Tailwind equivalent) === */
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-secondary); }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--accent-light); border-radius: 3px; }
 
-    .bg-secondary {
-      background-color: var(--bg-secondary);
-    }
-
-    .text-primary {
-      color: var(--text-primary);
-    }
-
-    .text-secondary {
-      color: var(--text-secondary);
-    }
-
-    .text-accent {
-      color: var(--accent);
-    }
-
-    .border-custom {
-      border-color: var(--border);
-    }
-
-    .accent-bg {
-      background-color: var(--accent);
-    }
-
-    .accent-light-bg {
-      background-color: var(--accent-light);
-    }
-
-    .verse-number {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-track {
-      background: var(--bg-secondary);
-    }
-
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background: var(--accent-light);
-      border-radius: 3px;
-    }
-
+    /* === Animations === */
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
+    .verse-item { opacity: 0; animation: fadeIn 0.4s ease-out forwards; }
 
-    .fade-in {
-      animation: fadeIn 0.4s ease-out forwards;
+    @keyframes verseHighlight {
+      0% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 20px rgba(139, 69, 19, 0.3); }
+      100% { box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent; }
     }
+    .verse-highlight { animation: verseHighlight 2s ease-out forwards; border-radius: 0.5rem; background-color: var(--bg-secondary) !important; opacity: 1 !important; }
 
-    .verse-item {
-      opacity: 0;
-      animation: fadeIn 0.4s ease-out forwards;
-    }
+    /* === Components using CSS vars (can't fully convert to Tailwind) === */
+    .custom-title { color: var(--accent); font-size: 0.875rem; font-weight: 600; padding: 0.25rem 0.5rem; background: linear-gradient(90deg, var(--accent-light), transparent); border-left: 3px solid var(--accent); margin-bottom: 0.5rem; border-radius: 0 0.25rem 0.25rem 0; }
+    .context-menu { position: fixed; background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: 0.5rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); z-index: 100; min-width: 150px; overflow: hidden; }
+    .context-menu-item { padding: 0.75rem 1rem; cursor: pointer; transition: background-color 0.15s; display: flex; align-items: center; gap: 0.5rem; }
+    .context-menu-item:hover { background-color: var(--bg-secondary); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    .modal-content { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 400px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
+    .verse-container { user-select: none; -webkit-user-select: none; cursor: pointer; }
+    .verse-container:active { background-color: var(--bg-primary); border-radius: 0.5rem; }
 
-    .custom-title {
-      color: var(--accent);
-      font-size: 0.875rem;
-      font-weight: 600;
-      padding: 0.25rem 0.5rem;
-      background: linear-gradient(90deg, var(--accent-light), transparent);
-      border-left: 3px solid var(--accent);
-      margin-bottom: 0.5rem;
-      border-radius: 0 0.25rem 0.25rem 0;
-    }
-
-    .context-menu {
-      position: fixed;
-      background-color: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-      z-index: 100;
-      min-width: 150px;
-      overflow: hidden;
-    }
-
-    .context-menu-item {
-      padding: 0.75rem 1rem;
-      cursor: pointer;
-      transition: background-color 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .context-menu-item:hover {
-      background-color: var(--bg-secondary);
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-
-    .modal-content {
-      background-color: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-    }
-
-    .verse-container {
-      user-select: none;
-      -webkit-user-select: none;
-      cursor: pointer;
-    }
-
-    .verse-container:active {
-      background-color: var(--bg-primary);
-      border-radius: 0.5rem;
-    }
-
-    .note-icon {
-      font-size: 1rem;
-      opacity: 0.7;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-
-    .note-icon:hover {
-      opacity: 1;
-      transform: scale(1.1);
-    }
+    /* === Dynamic content styles (used in x-html, can't use Tailwind) === */
+    .sn-code { color: var(--accent); cursor: pointer; font-size: 0.75em; vertical-align: super; opacity: 0.8; transition: opacity 0.2s, background-color 0.2s; padding: 0 2px; border-radius: 2px; }
+    .sn-code:hover { opacity: 1; background-color: var(--accent-light); color: var(--bg-primary); }
+    .sn-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; transition: color 0.2s; }
+    .sn-link:hover { color: var(--accent-light); text-decoration-style: solid; }
+    .verse-link { color: #4a90d9; cursor: pointer; text-decoration: underline; transition: color 0.2s, background-color 0.2s; padding: 0 2px; border-radius: 2px; }
+    .dark .verse-link { color: #6bb3ff; }
+    .verse-link:hover { background-color: rgba(74, 144, 217, 0.15); }
   </style>
 </head>
 
@@ -203,12 +92,32 @@
       <!-- Header -->
   <header class="bg-secondary border-b border-custom sticky top-0 z-50">
     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-      <h1 class="text-xl md:text-2xl font-bold text-accent">📖 聖經閱讀器</h1>
-      <button @click="toggleDarkMode()" class="p-2 rounded-full hover:bg-primary transition-colors"
-        :title="isDark ? '切換淺色模式' : '切換深色模式'">
-        <span x-show="!isDark" class="text-xl">🌙</span>
-        <span x-show="isDark" class="text-xl">☀️</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <span class="text-xl md:text-2xl">📖</span>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold text-accent leading-tight">聖經閱讀器</h1>
+          <button @click="versionModal.show = true"
+            class="text-xs text-secondary hover:text-accent transition-colors flex items-center gap-1">
+            <span x-text="currentVersion.name"></span>
+            <span>▼</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="versionModal.show = true" class="p-2 rounded-full hover:bg-primary transition-colors"
+          title="切換譯本">
+          <span class="text-xl">📚</span>
+        </button>
+        <button @click="settingsModal.show = true" class="p-2 rounded-full hover:bg-primary transition-colors"
+          title="設定">
+          <span class="text-xl">⚙️</span>
+        </button>
+        <button @click="toggleDarkMode()" class="p-2 rounded-full hover:bg-primary transition-colors"
+          :title="isDark ? '切換淺色模式' : '切換深色模式'">
+          <span x-show="!isDark" class="text-xl">🌙</span>
+          <span x-show="isDark" class="text-xl">☀️</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -283,7 +192,7 @@
               <div
                 class="verse-item p-4 bg-primary rounded-lg border border-custom cursor-pointer hover:border-amber-600 transition-colors"
                 :style="'animation-delay: ' + (index * 30) + 'ms'" @click="goToVerse(verse)">
-                <span class="verse-number text-sm" x-text="verse.ref"></span>
+                <span class="text-accent font-semibold text-sm" x-text="verse.ref"></span>
                 <p class="mt-1 text-primary leading-relaxed" x-text="verse.text"></p>
               </div>
             </template>
@@ -305,10 +214,12 @@
       <!-- Chapter Verses -->
       <template x-if="!searchQuery">
         <div>
-          <div class="space-y-4">
+          <div :style="`display: flex; flex-direction: column; gap: ${verseSpacing}px;`">
             <template x-for="(verse, index) in currentVerses" :key="'verse-' + index">
-              <div class="verse-item leading-relaxed text-lg verse-container p-2 -mx-2 rounded-lg"
-                :style="'animation-delay: ' + (index * 50) + 'ms'" @mousedown="startLongPress($event, verse)"
+              <div class="verse-item verse-container px-2 -mx-2 rounded-lg"
+                :data-verse-num="verse.verseNum"
+                :style="`animation-delay: ${index * 50}ms; font-size: ${fontSize}px; line-height: ${lineHeight}; font-family: ${currentFontFamily};`"
+                @mousedown="startLongPress($event, verse)"
                 @mouseup="cancelLongPress()" @mouseleave="cancelLongPress()"
                 @touchstart.passive="startLongPress($event, verse)" @touchend="cancelLongPress()"
                 @touchmove="cancelLongPress()" @contextmenu.prevent="showContextMenu($event, verse)">
@@ -317,12 +228,12 @@
                 <!-- Verse Content -->
                 <div class="flex items-start gap-2">
                   <div class="flex-1">
-                    <span class="verse-number mr-2" x-text="verse.verseNum"></span>
-                    <span x-text="verse.text"></span>
+                    <span class="text-accent font-semibold mr-2" x-text="verse.verseNum"></span>
+                    <span x-html="renderVerseText(verse.text)"></span>
                   </div>
                   <!-- Note Icon -->
                   <button x-show="notes[verse.ref]" @click.stop="openNoteModal(verse)"
-                    class="note-icon flex-shrink-0 p-1 rounded hover:bg-primary transition-colors" title="查看筆記">
+                    class="flex-shrink-0 p-1 rounded hover:bg-primary transition-all text-base opacity-70 hover:opacity-100 hover:scale-110" title="查看筆記">
                     ✏️
                   </button>
                 </div>
@@ -421,6 +332,338 @@
     </div>
   </div>
 
+  <!-- Strong's Number Definition Modal -->
+  <div x-cloak x-show="snModal.show" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="snModal.show = false">
+    <div class="modal-content max-w-lg" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-accent flex items-center gap-2">
+          <span>📖</span>
+          <span x-text="snModal.code"></span>
+        </h3>
+        <button @click="snModal.show = false" class="p-1 hover:bg-secondary rounded-full transition-colors">
+          <span class="text-xl text-secondary">✕</span>
+        </button>
+      </div>
+      <div class="max-h-[60vh] overflow-y-auto">
+        <div x-show="snModal.loading" class="flex items-center justify-center py-8">
+          <span class="animate-pulse text-2xl">⏳</span>
+        </div>
+        <div x-show="!snModal.loading && snModal.definition" class="whitespace-pre-wrap leading-relaxed text-primary" x-html="snModal.definition"></div>
+        <div x-show="!snModal.loading && !snModal.definition" class="text-secondary text-center py-8">
+          <span class="text-2xl block mb-2">❓</span>
+          <p>找不到定義</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reading Adjustment Overlay -->
+  <div x-cloak x-show="readingOverlay.show"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 translate-y-4"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 translate-y-4"
+    class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[150] pointer-events-none w-[90%] max-w-[320px]">
+    <div class="pointer-events-auto bg-black/85 backdrop-blur-md text-white rounded-2xl shadow-2xl overflow-hidden"
+      @click="resetOverlayTimeout()">
+
+      <!-- Tab Selector -->
+      <div class="flex border-b border-white/10">
+        <button @click="switchOverlayTab(0)"
+          :class="readingOverlay.activeTab === 0 ? 'bg-white/10 text-white' : 'text-white/50'"
+          class="flex-1 py-2.5 text-center text-xs font-medium transition-colors">
+          <span class="block text-base mb-0.5">A</span>字號
+        </button>
+        <button @click="switchOverlayTab(1)"
+          :class="readingOverlay.activeTab === 1 ? 'bg-white/10 text-white' : 'text-white/50'"
+          class="flex-1 py-2.5 text-center text-xs font-medium transition-colors">
+          <span class="block text-base mb-0.5">≡</span>行距
+        </button>
+        <button @click="switchOverlayTab(2)"
+          :class="readingOverlay.activeTab === 2 ? 'bg-white/10 text-white' : 'text-white/50'"
+          class="flex-1 py-2.5 text-center text-xs font-medium transition-colors">
+          <span class="block text-base mb-0.5">¶</span>段距
+        </button>
+        <button @click="switchOverlayTab(3)"
+          :class="readingOverlay.activeTab === 3 ? 'bg-white/10 text-white' : 'text-white/50'"
+          class="flex-1 py-2.5 text-center text-xs font-medium transition-colors">
+          <span class="block text-base mb-0.5">字</span>字型
+        </button>
+      </div>
+
+      <!-- Control Area -->
+      <div class="px-5 py-4">
+        <!-- Font Size Control -->
+        <div x-show="readingOverlay.activeTab === 0" class="flex items-center gap-4">
+          <button @click="adjustFontSize(-2)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-sm font-medium">A</span>
+          </button>
+          <div class="flex-1 text-center">
+            <div class="text-2xl font-bold" x-text="fontSize + 'px'"></div>
+          </div>
+          <button @click="adjustFontSize(2)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-xl font-medium">A</span>
+          </button>
+        </div>
+
+        <!-- Line Height Control -->
+        <div x-show="readingOverlay.activeTab === 1" class="flex items-center gap-4">
+          <button @click="adjustLineHeight(-0.2)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-lg leading-none">≡</span>
+          </button>
+          <div class="flex-1 text-center">
+            <div class="text-2xl font-bold" x-text="lineHeight.toFixed(1)"></div>
+          </div>
+          <button @click="adjustLineHeight(0.2)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95"
+            style="letter-spacing: 3px;">
+            <span class="text-lg leading-none">≡</span>
+          </button>
+        </div>
+
+        <!-- Verse Spacing Control -->
+        <div x-show="readingOverlay.activeTab === 2" class="flex items-center gap-4">
+          <button @click="adjustVerseSpacing(-4)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-lg">−</span>
+          </button>
+          <div class="flex-1 text-center">
+            <div class="text-2xl font-bold" x-text="verseSpacing + 'px'"></div>
+          </div>
+          <button @click="adjustVerseSpacing(4)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-lg">+</span>
+          </button>
+        </div>
+
+        <!-- Font Family Control -->
+        <div x-show="readingOverlay.activeTab === 3" class="flex items-center gap-4">
+          <button @click="adjustFontFamily(-1)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-lg">◀</span>
+          </button>
+          <div class="flex-1 text-center">
+            <div class="text-xl font-bold" x-text="currentFontFamilyName" :style="`font-family: ${currentFontFamily}`"></div>
+          </div>
+          <button @click="adjustFontFamily(1)"
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-colors active:scale-95">
+            <span class="text-lg">▶</span>
+          </button>
+        </div>
+
+        <!-- Progress bar (hidden for font family tab) -->
+        <div x-show="readingOverlay.activeTab !== 3" class="mt-4 h-1.5 bg-white/15 rounded-full overflow-hidden">
+          <div class="h-full bg-white/70 rounded-full transition-all duration-200"
+            :style="readingOverlay.activeTab === 0
+              ? `width: ${((fontSize - 12) / 20) * 100}%`
+              : readingOverlay.activeTab === 1
+                ? `width: ${((lineHeight - 1.2) / 1.8) * 100}%`
+                : `width: ${(verseSpacing / 48) * 100}%`">
+          </div>
+        </div>
+        <!-- Font family indicator dots -->
+        <div x-show="readingOverlay.activeTab === 3" class="mt-4 flex justify-center gap-2">
+          <template x-for="(font, idx) in fontFamilies" :key="idx">
+            <div class="w-2 h-2 rounded-full transition-colors"
+              :class="fontFamily === idx ? 'bg-white' : 'bg-white/30'"></div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div x-cloak x-show="settingsModal.show" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="settingsModal.show = false">
+    <div class="modal-content max-w-md max-h-[85vh] overflow-y-auto" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+      <h3 class="text-lg font-semibold text-accent mb-4">⚙️ 設定</h3>
+
+      <!-- Reading Preferences -->
+      <div class="space-y-3 mb-6">
+        <h4 class="font-medium text-primary">📖 閱讀設定</h4>
+
+        <button @click="showReadingOverlay()"
+          class="w-full flex items-center justify-between p-3 rounded-lg bg-primary border border-custom hover:border-amber-600 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">📐</span>
+            <span class="text-primary">調整顯示</span>
+          </div>
+          <div class="text-secondary text-xs">
+            <span x-text="currentFontFamilyName"></span>
+          </div>
+        </button>
+      </div>
+
+      <!-- File System Access Status -->
+      <div class="mb-4 p-3 rounded-lg bg-primary border border-custom">
+        <div class="flex items-center gap-2 mb-1">
+          <span x-text="hasFileSystemAccess ? '✅' : '⚠️'"></span>
+          <span class="font-medium text-primary" x-text="hasFileSystemAccess ? '支援檔案系統 API' : '不支援檔案系統 API'"></span>
+        </div>
+        <p class="text-sm text-secondary" x-text="hasFileSystemAccess ? '可自動���步至本機檔案' : '將使用下載/上傳方式備份'"></p>
+      </div>
+
+      <!-- Data Sync Section -->
+      <div class="space-y-3 mb-6">
+        <h4 class="font-medium text-primary">📂 資料備份</h4>
+
+        <!-- File Handle Status -->
+        <div x-show="fileHandle" class="p-3 rounded-lg bg-primary border border-custom">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-secondary">已連結檔案：</p>
+              <p class="font-medium text-primary" x-text="fileHandle?.name || '未知'"></p>
+              <p class="text-xs text-secondary mt-1">💡 重新開啟 app 後需重新授權</p>
+            </div>
+            <button @click="unlinkFile()" class="text-sm text-red-500 hover:text-red-600">解除連結</button>
+          </div>
+        </div>
+
+        <!-- Export Button -->
+        <button @click="exportData()" :disabled="settingsModal.isBusy"
+          class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-custom hover:bg-primary transition-colors disabled:opacity-50">
+          <span>💾</span>
+          <span x-text="hasFileSystemAccess ? (fileHandle ? '儲存至檔案' : '選擇檔案並儲存') : '下載備份檔案'"></span>
+        </button>
+
+        <!-- Import Button -->
+        <button @click="importData()" :disabled="settingsModal.isBusy"
+          class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-custom hover:bg-primary transition-colors disabled:opacity-50">
+          <span>📂</span>
+          <span x-text="hasFileSystemAccess ? '從檔案載入' : '上傳備份檔案'"></span>
+        </button>
+
+        <!-- Auto-sync toggle (only for File System Access) -->
+        <div x-show="hasFileSystemAccess && fileHandle" class="flex items-center justify-between p-3 rounded-lg bg-primary border border-custom">
+          <div>
+            <p class="font-medium text-primary">自動同步</p>
+            <p class="text-sm text-secondary">變更時自動儲存至檔案</p>
+          </div>
+          <button @click="autoSync = !autoSync; saveAutoSyncPreference()"
+            :class="autoSync ? 'bg-green-500' : 'bg-gray-400'"
+            class="relative w-12 h-6 rounded-full transition-colors">
+            <span :class="autoSync ? 'translate-x-6' : 'translate-x-1'"
+              class="absolute top-1 left-0 w-4 h-4 bg-white rounded-full transition-transform shadow"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Message -->
+      <div x-show="settingsModal.message" class="mb-4 p-3 rounded-lg"
+        :class="settingsModal.isError ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'">
+        <p class="text-sm" x-text="settingsModal.message"></p>
+      </div>
+
+      <!-- Cache Section -->
+      <div class="space-y-3 mb-6">
+        <h4 class="font-medium text-primary">🗄️ 快取管理</h4>
+        <div class="p-3 rounded-lg bg-primary border border-custom">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-secondary">已下載譯本</p>
+              <p class="font-medium text-primary" x-text="cachedVersions.length + ' 個譯本'"></p>
+            </div>
+            <button @click="versionModal.show = true; settingsModal.show = false"
+              class="text-sm text-accent hover:underline">管理</button>
+          </div>
+        </div>
+        <button @click="clearAllVersions()" x-show="cachedVersions.length > 1"
+          class="w-full text-sm text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+          清除所有快取（保留目前使用中的譯本）
+        </button>
+      </div>
+
+      <!-- Close Button -->
+      <div class="flex justify-end">
+        <button @click="settingsModal.show = false"
+          class="px-4 py-2 rounded-lg text-white transition-colors"
+          style="background-color: var(--accent);">
+          關閉
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version Selector Modal -->
+  <div x-cloak x-show="versionModal.show" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="versionModal.show = false">
+    <div class="modal-content max-w-lg max-h-[80vh] overflow-hidden flex flex-col" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-accent">📚 選擇譯本</h3>
+        <button @click="versionModal.show = false" class="p-1 hover:bg-secondary rounded-full transition-colors">
+          <span class="text-xl text-secondary">✕</span>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto flex-1 -mx-2 px-2 scrollbar-thin">
+        <!-- Group by language -->
+        <template x-for="lang in ['繁體中文', 'English', 'Ελληνικά', 'עברית']" :key="lang">
+          <div x-show="availableVersions.filter(v => v.lang === lang).length > 0" class="mb-4">
+            <h4 class="text-sm font-semibold text-secondary mb-2" x-text="lang"></h4>
+            <div class="space-y-2">
+              <template x-for="version in availableVersions.filter(v => v.lang === lang)" :key="version.id">
+                <div class="p-3 rounded-lg border border-custom transition-colors"
+                  :class="selectedVersionId === version.id ? 'bg-primary border-amber-600' : 'hover:bg-primary'">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-primary" x-text="version.name"></span>
+                        <span x-show="selectedVersionId === version.id" class="text-xs px-1.5 py-0.5 rounded bg-amber-600 text-white">使用中</span>
+                        <span x-show="isVersionCached(version.id) && selectedVersionId !== version.id" class="text-xs px-1.5 py-0.5 rounded bg-green-600 text-white">已下載</span>
+                      </div>
+                      <p class="text-xs text-secondary mt-0.5" x-text="version.size"></p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <!-- Delete button for cached versions (not currently selected) -->
+                      <button x-show="isVersionCached(version.id) && selectedVersionId !== version.id"
+                        @click="deleteVersion(version.id)"
+                        class="p-1.5 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                        title="刪除快取">
+                        <span class="text-sm">🗑️</span>
+                      </button>
+                      <!-- Select/Download button -->
+                      <button @click="selectVersion(version.id)"
+                        :disabled="versionModal.downloading === version.id"
+                        class="px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                        :class="selectedVersionId === version.id ? 'bg-secondary text-secondary cursor-default' : 'text-white'"
+                        :style="selectedVersionId !== version.id ? 'background-color: var(--accent);' : ''">
+                        <span x-show="versionModal.downloading === version.id" class="flex items-center gap-1">
+                          <span class="animate-spin">⏳</span> 下載中...
+                        </span>
+                        <span x-show="versionModal.downloading !== version.id">
+                          <span x-text="selectedVersionId === version.id ? '使用中' : (isVersionCached(version.id) ? '切換' : '下載')"></span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-custom">
+        <p class="text-xs text-secondary text-center">已快取 <span x-text="cachedVersions.length"></span> 個譯本</p>
+      </div>
+    </div>
+  </div>
+
 
     <div id="pwa-toast" role="alert" aria-labelledby="toast-message"
       class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-secondary border border-custom rounded-xl p-4 shadow-lg z-[300] hidden">
@@ -449,6 +692,46 @@
 
 
   <script>
+    // Book code to name mapping
+    const BOOK_NAMES = {
+      // Old Testament
+      'GEN': '創世記', 'EXO': '出埃及記', 'LEV': '利未記', 'NUM': '民數記', 'DEU': '申命記',
+      'JOS': '約書亞記', 'JDG': '士師記', 'RUT': '路得記', '1SA': '撒母耳記上', '2SA': '撒母耳記下',
+      '1KI': '列王紀上', '2KI': '列王紀下', '1CH': '歷代志上', '2CH': '歷代志下',
+      'EZR': '以斯拉記', 'NEH': '尼希米記', 'EST': '以斯帖記', 'JOB': '約伯記', 'PSA': '詩篇',
+      'PRO': '箴言', 'ECC': '傳道書', 'SNG': '雅歌', 'ISA': '以賽亞書', 'JER': '耶利米書',
+      'LAM': '耶利米哀歌', 'EZK': '以西結書', 'DAN': '但以理書', 'HOS': '何西阿書',
+      'JOL': '約珥書', 'AMO': '阿摩司書', 'OBA': '俄巴底亞書', 'JON': '約拿書', 'MIC': '彌迦書',
+      'NAM': '那鴻書', 'HAB': '哈巴谷書', 'ZEP': '西番雅書', 'HAG': '哈該書', 'ZEC': '撒迦利亞書', 'MAL': '瑪拉基書',
+      // New Testament
+      'MAT': '馬太福音', 'MRK': '馬可福音', 'LUK': '路加福音', 'JHN': '約翰福音', 'ACT': '使徒行傳',
+      'ROM': '羅馬書', '1CO': '哥林多前書', '2CO': '哥林多後書', 'GAL': '加拉太書', 'EPH': '以弗所書',
+      'PHP': '腓立比書', 'COL': '歌羅西書', '1TH': '帖撒羅尼迦前書', '2TH': '帖撒羅尼迦後書',
+      '1TI': '提摩太前書', '2TI': '提摩太後書', 'TIT': '提多書', 'PHM': '腓利門書', 'HEB': '希伯來書',
+      'JAS': '雅各書', '1PE': '彼得前書', '2PE': '彼得後書', '1JN': '約翰一書', '2JN': '約翰二書',
+      '3JN': '約翰三書', 'JUD': '猶大書', 'REV': '啟示錄',
+      // Alternate codes
+      'SON': '雅歌', 'SOL': '雅歌', 'SOS': '雅歌', 'JOE': '約珥書', 'NAH': '那鴻書',
+      'ZPH': '西番雅書', 'MK': '馬可福音', 'JN': '約翰福音', 'PHI': '腓立比書',
+      '1THS': '帖撒羅尼迦前書', '2THS': '帖撒羅尼迦後書', '1TIM': '提摩太前書', '2TIM': '提摩太後書',
+      'PHILE': '腓利門書', '1PET': '彼得前書', '2PET': '彼得後書'
+    };
+
+    // Available Bible versions
+    const BIBLE_VERSIONS = [
+      { id: 'zh-rTW_CUV', file: 'zh-rTW_CUV.txt', name: '和合本', lang: '繁體中文', size: '3.6 MB' },
+      { id: 'zh-rTW_CUV-SN', file: 'zh-rTW_CUV-SN.txt', name: '和合本 (含原文編號)', lang: '繁體中文', size: '6.7 MB' },
+      { id: 'zh-rTW_CNV', file: 'zh-rTW_CNV.txt', name: '新譯本', lang: '繁體中文', size: '3.9 MB' },
+      { id: 'zh-rTW_LCC', file: 'zh-rTW_LCC.txt', name: '呂振中譯本', lang: '繁體中文', size: '4.0 MB' },
+      { id: 'en_KJV-SN', file: 'en_KJV-SN.txt', name: 'King James (Strong\'s)', lang: 'English', size: '7.4 MB' },
+      { id: 'en_ASV', file: 'en_ASV.txt', name: 'American Standard', lang: 'English', size: '4.4 MB' },
+      { id: 'en_WEB', file: 'en_WEB.txt', name: 'World English Bible', lang: 'English', size: '4.3 MB' },
+      { id: 'en_BBE', file: 'en_BBE.txt', name: 'Bible in Basic English', lang: 'English', size: '4.4 MB' },
+      { id: 'en_YLT', file: 'en_YLT.txt', name: 'Young\'s Literal', lang: 'English', size: '4.4 MB' },
+      { id: 'el_Septuaginta', file: 'el_Septuaginta.txt', name: 'Septuaginta', lang: 'Ελληνικά', size: '5.4 MB' },
+      { id: 'iw_ModernHebrew', file: 'iw_ModernHebrew.txt', name: 'Modern Hebrew', lang: 'עברית', size: '4.0 MB' }
+    ];
+
     function bibleReader() {
       return {
         isDark: false,
@@ -469,6 +752,14 @@
         isLoading: false,
         loadingMessage: '',
         loadingSubMessage: '',
+        // Version management
+        availableVersions: BIBLE_VERSIONS,
+        selectedVersionId: 'zh-rTW_CUV',
+        cachedVersions: [],
+        versionModal: {
+          show: false,
+          downloading: null
+        },
         contextMenu: {
           show: false,
           x: 0,
@@ -485,8 +776,44 @@
           verse: null,
           note: ''
         },
+        settingsModal: {
+          show: false,
+          isBusy: false,
+          message: '',
+          isError: false
+        },
+        snModal: {
+          show: false,
+          code: '',
+          definition: '',
+          loading: false
+        },
+        snDictionary: {},  // Cache for Strong's Number dictionary
+        snDictLoading: false,
+        hasFileSystemAccess: false,
+        fileHandle: null,
+        autoSync: false,
+        // Reading preferences
+        fontSize: 18,      // in pixels
+        lineHeight: 1.8,   // multiplier
+        verseSpacing: 16,  // in pixels (gap between verses)
+        fontFamily: 0,     // index into fontFamilies array
+        fontFamilies: [
+          { name: '系統字型', value: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+          { name: '思源宋體', value: '"Noto Serif TC", serif' },
+          { name: '黑體', value: '"Noto Sans TC", "Microsoft JhengHei", sans-serif' },
+          { name: '楷體', value: '"TW-Kai", "DFKai-SB", "KaiTi", serif' }
+        ],
+        // Reading overlay control
+        readingOverlay: {
+          show: false,
+          activeTab: 0,  // 0: fontSize, 1: lineHeight, 2: verseSpacing, 3: fontFamily
+          hideTimeout: null
+        },
 
         async init() {
+          // Check File System Access API support
+          this.hasFileSystemAccess = 'showSaveFilePicker' in window;
           // Check dark mode preference
           if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             this.isDark = true;
@@ -506,11 +833,19 @@
         // IndexedDB helpers using idb-keyval
         async loadFromStorage() {
           try {
-            const [savedTitles, savedNotes, savedBook, savedChapter] = await Promise.all([
+            const [savedTitles, savedNotes, savedBook, savedChapter, savedAutoSync, savedFileHandle, savedVersionId, savedCachedVersions, savedFontSize, savedLineHeight, savedVerseSpacing, savedFontFamily] = await Promise.all([
               idbKeyval.get('bible_customTitles'),
               idbKeyval.get('bible_notes'),
               idbKeyval.get('bible_selectedBook'),
-              idbKeyval.get('bible_selectedChapter')
+              idbKeyval.get('bible_selectedChapter'),
+              idbKeyval.get('bible_autoSync'),
+              idbKeyval.get('bible_fileHandle'),
+              idbKeyval.get('bible_selectedVersion'),
+              idbKeyval.get('bible_cachedVersions'),
+              idbKeyval.get('bible_fontSize'),
+              idbKeyval.get('bible_lineHeight'),
+              idbKeyval.get('bible_verseSpacing'),
+              idbKeyval.get('bible_fontFamily')
             ]);
 
             if (savedTitles) {
@@ -525,15 +860,77 @@
             if (savedChapter) {
               this._pendingChapter = savedChapter;
             }
+            if (savedAutoSync !== undefined) {
+              this.autoSync = savedAutoSync;
+            }
+            if (savedVersionId && this.availableVersions.some(v => v.id === savedVersionId)) {
+              this.selectedVersionId = savedVersionId;
+            }
+            if (savedCachedVersions && Array.isArray(savedCachedVersions)) {
+              this.cachedVersions = savedCachedVersions;
+            }
+
+            // Restore file handle if available (permissions will need to be re-requested)
+            if (savedFileHandle && this.hasFileSystemAccess) {
+              this.fileHandle = savedFileHandle;
+              // Note: Permission will be checked/requested when user tries to use it
+            }
+
+            // Restore reading preferences
+            if (savedFontSize && savedFontSize >= 12 && savedFontSize <= 32) {
+              this.fontSize = savedFontSize;
+            }
+            if (savedLineHeight && savedLineHeight >= 1.2 && savedLineHeight <= 3) {
+              this.lineHeight = savedLineHeight;
+            }
+            if (savedVerseSpacing && savedVerseSpacing >= 0 && savedVerseSpacing <= 48) {
+              this.verseSpacing = savedVerseSpacing;
+            }
+            if (savedFontFamily !== undefined && savedFontFamily >= 0 && savedFontFamily < this.fontFamilies.length) {
+              this.fontFamily = savedFontFamily;
+            }
           } catch (e) {
             console.warn('Failed to load from IndexedDB:', e);
           }
+        },
+
+        // Save file handle to IndexedDB
+        async saveFileHandle() {
+          try {
+            if (this.fileHandle) {
+              await idbKeyval.set('bible_fileHandle', this.fileHandle);
+            } else {
+              await idbKeyval.del('bible_fileHandle');
+            }
+          } catch (e) {
+            console.warn('Failed to save file handle:', e);
+          }
+        },
+
+        // Verify and request permission for file handle
+        async verifyPermission(readWrite = true) {
+          if (!this.fileHandle) return false;
+
+          const options = readWrite ? { mode: 'readwrite' } : {};
+
+          // Check if permission was already granted
+          if ((await this.fileHandle.queryPermission(options)) === 'granted') {
+            return true;
+          }
+
+          // Request permission if not granted
+          if ((await this.fileHandle.requestPermission(options)) === 'granted') {
+            return true;
+          }
+
+          return false;
         },
 
         async saveCustomTitles() {
           try {
             // Clone to plain object to avoid DataCloneError with Alpine proxies
             await idbKeyval.set('bible_customTitles', JSON.parse(JSON.stringify(this.customTitles)));
+            await this.triggerAutoSync();
           } catch (e) {
             console.warn('Failed to save custom titles:', e);
           }
@@ -543,6 +940,7 @@
           try {
             // Clone to plain object to avoid DataCloneError with Alpine proxies
             await idbKeyval.set('bible_notes', JSON.parse(JSON.stringify(this.notes)));
+            await this.triggerAutoSync();
           } catch (e) {
             console.warn('Failed to save notes:', e);
           }
@@ -559,17 +957,187 @@
           }
         },
 
+        async saveReadingPreferences() {
+          try {
+            await Promise.all([
+              idbKeyval.set('bible_fontSize', this.fontSize),
+              idbKeyval.set('bible_lineHeight', this.lineHeight),
+              idbKeyval.set('bible_verseSpacing', this.verseSpacing),
+              idbKeyval.set('bible_fontFamily', this.fontFamily)
+            ]);
+          } catch (e) {
+            console.warn('Failed to save reading preferences:', e);
+          }
+        },
+
+        // Show reading overlay control
+        showReadingOverlay() {
+          this.readingOverlay.show = true;
+          this.settingsModal.show = false;
+          this.resetOverlayTimeout();
+        },
+
+        resetOverlayTimeout() {
+          if (this.readingOverlay.hideTimeout) {
+            clearTimeout(this.readingOverlay.hideTimeout);
+          }
+          this.readingOverlay.hideTimeout = setTimeout(() => {
+            this.readingOverlay.show = false;
+          }, 3000);
+        },
+
+        hideReadingOverlay() {
+          if (this.readingOverlay.hideTimeout) {
+            clearTimeout(this.readingOverlay.hideTimeout);
+          }
+          this.readingOverlay.show = false;
+        },
+
+        switchOverlayTab(tab) {
+          this.readingOverlay.activeTab = tab;
+          this.resetOverlayTimeout();
+        },
+
+        adjustFontSize(delta) {
+          this.fontSize = Math.max(12, Math.min(32, parseInt(this.fontSize) + delta));
+          this.saveReadingPreferences();
+          this.resetOverlayTimeout();
+        },
+
+        adjustLineHeight(delta) {
+          this.lineHeight = Math.max(1.2, Math.min(3, Math.round((parseFloat(this.lineHeight) + delta) * 10) / 10));
+          this.saveReadingPreferences();
+          this.resetOverlayTimeout();
+        },
+
+        adjustVerseSpacing(delta) {
+          this.verseSpacing = Math.max(0, Math.min(48, parseInt(this.verseSpacing) + delta));
+          this.saveReadingPreferences();
+          this.resetOverlayTimeout();
+        },
+
+        adjustFontFamily(delta) {
+          const len = this.fontFamilies.length;
+          this.fontFamily = ((this.fontFamily + delta) % len + len) % len;
+          this.saveReadingPreferences();
+          this.resetOverlayTimeout();
+        },
+
+        get currentFontFamily() {
+          return this.fontFamilies[this.fontFamily]?.value || this.fontFamilies[0].value;
+        },
+
+        get currentFontFamilyName() {
+          return this.fontFamilies[this.fontFamily]?.name || this.fontFamilies[0].name;
+        },
+
+        // Get current selected version info
+        get currentVersion() {
+          return this.availableVersions.find(v => v.id === this.selectedVersionId) || this.availableVersions[0];
+        },
+
+        // Check if a version is cached
+        isVersionCached(versionId) {
+          return this.cachedVersions.includes(versionId);
+        },
+
+        // Save selected version preference
+        async saveSelectedVersion() {
+          try {
+            await idbKeyval.set('bible_selectedVersion', this.selectedVersionId);
+          } catch (e) {
+            console.warn('Failed to save selected version:', e);
+          }
+        },
+
+        // Save cached versions list
+        async saveCachedVersions() {
+          try {
+            await idbKeyval.set('bible_cachedVersions', JSON.parse(JSON.stringify(this.cachedVersions)));
+          } catch (e) {
+            console.warn('Failed to save cached versions list:', e);
+          }
+        },
+
+        // Download and cache a Bible version
+        async downloadVersion(version) {
+          this.versionModal.downloading = version.id;
+
+          try {
+            const response = await fetch(`./txt/${version.file}`);
+            if (!response.ok) {
+              throw new Error(`Failed to download: ${response.status}`);
+            }
+            const text = await response.text();
+
+            // Cache in IndexedDB
+            await idbKeyval.set(`bible_version_${version.id}`, text);
+
+            // Update cached versions list
+            if (!this.cachedVersions.includes(version.id)) {
+              this.cachedVersions.push(version.id);
+              await this.saveCachedVersions();
+            }
+
+            this.versionModal.downloading = null;
+            return true;
+          } catch (error) {
+            console.error('Download failed:', error);
+            this.versionModal.downloading = null;
+            return false;
+          }
+        },
+
+        // Delete cached version
+        async deleteVersion(versionId) {
+          try {
+            await idbKeyval.del(`bible_version_${versionId}`);
+            this.cachedVersions = this.cachedVersions.filter(id => id !== versionId);
+            await this.saveCachedVersions();
+          } catch (e) {
+            console.warn('Failed to delete version:', e);
+          }
+        },
+
+        // Select and load a version
+        async selectVersion(versionId) {
+          const version = this.availableVersions.find(v => v.id === versionId);
+          if (!version) return;
+
+          // Download if not cached
+          if (!this.isVersionCached(versionId)) {
+            const success = await this.downloadVersion(version);
+            if (!success) return;
+          }
+
+          this.selectedVersionId = versionId;
+          await this.saveSelectedVersion();
+          this.versionModal.show = false;
+
+          // Clear SN dictionary when switching versions
+          this.snDictionary = {};
+
+          // Reload verses
+          await this.parseVerses();
+        },
+
         async parseVerses() {
-          let profiles;
+          let rawText;
+          const version = this.currentVersion;
+
+          // Reset data
+          this.allVerses = [];
+          this.books = [];
+          this.bibleData = {};
 
           // Try to load from IndexedDB cache first
           try {
-            const cachedData = await idbKeyval.get('bible_verses_cache');
+            const cachedData = await idbKeyval.get(`bible_version_${this.selectedVersionId}`);
             if (cachedData) {
               this.isLoading = true;
               this.loadingMessage = '正在載入經文...';
-              this.loadingSubMessage = '從快取讀取';
-              profiles = cachedData;
+              this.loadingSubMessage = `${version.name} - 從快取讀取`;
+              rawText = cachedData;
               // Small delay to show loading state
               await new Promise(resolve => setTimeout(resolve, 100));
             }
@@ -578,23 +1146,27 @@
           }
 
           // If not cached, fetch from network
-          if (!profiles) {
+          if (!rawText) {
             this.isLoading = true;
-            this.loadingMessage = '首次載入經文資料...';
-            this.loadingSubMessage = '檔案大小約 5MB，請稍候';
+            this.loadingMessage = '正在下載經文資料...';
+            this.loadingSubMessage = `${version.name} (${version.size})`;
 
             try {
-              const response = await fetch('./uv.json');
+              const response = await fetch(`./txt/${version.file}`);
               if (!response.ok) {
-                throw new Error(`Failed to load uv.json: ${response.status}`);
+                throw new Error(`Failed to load ${version.file}: ${response.status}`);
               }
-              profiles = await response.json();
+              rawText = await response.text();
 
               // Cache the data in IndexedDB
               this.loadingMessage = '正在儲存快取...';
               this.loadingSubMessage = '下次載入將更快';
               try {
-                await idbKeyval.set('bible_verses_cache', profiles);
+                await idbKeyval.set(`bible_version_${this.selectedVersionId}`, rawText);
+                if (!this.cachedVersions.includes(this.selectedVersionId)) {
+                  this.cachedVersions.push(this.selectedVersionId);
+                  await this.saveCachedVersions();
+                }
                 console.log('Bible data cached successfully');
               } catch (cacheError) {
                 console.warn('Failed to cache Bible data:', cacheError);
@@ -608,26 +1180,39 @@
             }
           }
 
+          // Parse the new format
+          const lines = rawText.split('\n');
+          const bookOrder = []; // Maintain book order
           const bookSet = new Set();
-          const seenRefs = new Set(); // Track seen verse references to prevent duplicates
+          const seenRefs = new Set();
 
-          profiles.forEach(line => {
-            // Parse format: "創1:1 起初���神創造天地。"
-            const match = line.match(/^(.+?)(\d+):(\d+)\s+(.+)$/);
-            if (match) {
-              const [, book, chapter, verse, text] = match;
-              const ref = `${book}${chapter}:${verse}`;
+          for (const line of lines) {
+            // Skip header line and empty lines
+            if (line.startsWith('@') || !line.trim()) continue;
 
-              // Skip if we've already seen this verse
-              if (seenRefs.has(ref)) {
-                return;
-              }
-              seenRefs.add(ref);
-
+            // Parse format: BOOK_CODE|chapter|verse|text
+            const parts = line.split('|');
+            if (parts.length >= 4) {
+              const [bookCode, chapter, verse, ...textParts] = parts;
+              const text = textParts.join('|'); // In case text contains |
               const chapterNum = parseInt(chapter);
               const verseNum = parseInt(verse);
 
-              bookSet.add(book);
+              if (isNaN(chapterNum) || isNaN(verseNum)) continue;
+
+              // Get book name from mapping or use code
+              const book = BOOK_NAMES[bookCode] || bookCode;
+              const ref = `${book}${chapterNum}:${verseNum}`;
+
+              // Skip duplicates
+              if (seenRefs.has(ref)) continue;
+              seenRefs.add(ref);
+
+              // Track book order
+              if (!bookSet.has(book)) {
+                bookSet.add(book);
+                bookOrder.push(book);
+              }
 
               if (!this.bibleData[book]) {
                 this.bibleData[book] = {};
@@ -647,11 +1232,10 @@
               this.bibleData[book][chapterNum].push(verseData);
               this.allVerses.push(verseData);
             }
-          });
+          }
 
           this.totalVerses = this.allVerses.length;
-
-          this.books = Array.from(bookSet);
+          this.books = bookOrder;
 
           // Clear loading state
           this.isLoading = false;
@@ -663,6 +1247,11 @@
             this.selectedBook = this.books[0];
             this.updateChapters();
             this.loadVerses();
+
+            // Preload dictionary for SN versions (don't await, let it load in background)
+            if (this.hasSN) {
+              this.loadDictionary();
+            }
 
             // Restore saved position after DOM is ready
             this.$nextTick(() => {
@@ -782,6 +1371,11 @@
           this.selectedChapter = verse.chapter;
           this.loadVerses();
           this.clearSearch();
+
+          // Scroll to and highlight the verse after DOM updates
+          this.$nextTick(() => {
+            this.scrollToAndHighlightVerse(verse.verseNum);
+          });
         },
 
         toggleDarkMode() {
@@ -907,6 +1501,460 @@
           }
           this.saveNotes();
           this.closeNoteModal();
+        },
+
+        // Settings & File System Access API methods
+        async saveAutoSyncPreference() {
+          try {
+            await idbKeyval.set('bible_autoSync', this.autoSync);
+          } catch (e) {
+            console.warn('Failed to save auto-sync preference:', e);
+          }
+        },
+
+        getExportData() {
+          return {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            customTitles: JSON.parse(JSON.stringify(this.customTitles)),
+            notes: JSON.parse(JSON.stringify(this.notes)),
+            selectedBook: this.selectedBook,
+            selectedChapter: this.selectedChapter
+          };
+        },
+
+        async exportData() {
+          this.settingsModal.isBusy = true;
+          this.settingsModal.message = '';
+
+          try {
+            const data = this.getExportData();
+            const jsonString = JSON.stringify(data, null, 2);
+
+            if (this.hasFileSystemAccess) {
+              // Use File System Access API
+              if (!this.fileHandle) {
+                // Prompt user to select/create a file
+                this.fileHandle = await window.showSaveFilePicker({
+                  suggestedName: 'bible-backup.json',
+                  types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] }
+                  }]
+                });
+                // Save the new file handle to IndexedDB
+                await this.saveFileHandle();
+              } else {
+                // Verify permission for existing file handle
+                const hasPermission = await this.verifyPermission(true);
+                if (!hasPermission) {
+                  this.settingsModal.message = '權限被拒絕，請重新選擇檔案';
+                  this.settingsModal.isError = true;
+                  this.fileHandle = null;
+                  await this.saveFileHandle();
+                  return;
+                }
+              }
+
+              // Write to the file
+              const writable = await this.fileHandle.createWritable();
+              await writable.write(jsonString);
+              await writable.close();
+
+              this.settingsModal.message = `已儲存至 ${this.fileHandle.name}`;
+              this.settingsModal.isError = false;
+            } else {
+              // Fallback to download
+              const blob = new Blob([jsonString], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `bible-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              this.settingsModal.message = '備份檔案已下載';
+              this.settingsModal.isError = false;
+            }
+          } catch (e) {
+            if (e.name === 'AbortError') {
+              // User cancelled the file picker
+              this.settingsModal.message = '';
+            } else {
+              console.error('Export failed:', e);
+              this.settingsModal.message = '匯出失敗：' + e.message;
+              this.settingsModal.isError = true;
+            }
+          } finally {
+            this.settingsModal.isBusy = false;
+          }
+        },
+
+        async importData() {
+          this.settingsModal.isBusy = true;
+          this.settingsModal.message = '';
+
+          try {
+            let fileContent;
+
+            if (this.hasFileSystemAccess) {
+              // Use File System Access API
+              const [handle] = await window.showOpenFilePicker({
+                types: [{
+                  description: 'JSON Files',
+                  accept: { 'application/json': ['.json'] }
+                }],
+                multiple: false
+              });
+
+              const file = await handle.getFile();
+              fileContent = await file.text();
+
+              // Store the handle for future use and persist to IndexedDB
+              this.fileHandle = handle;
+              await this.saveFileHandle();
+            } else {
+              // Fallback to file input
+              fileContent = await new Promise((resolve, reject) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json,application/json';
+                input.onchange = async (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    resolve(await file.text());
+                  } else {
+                    reject(new Error('No file selected'));
+                  }
+                };
+                input.click();
+              });
+            }
+
+            const data = JSON.parse(fileContent);
+
+            // Validate data structure
+            if (!data.version || !data.exportedAt) {
+              throw new Error('無效的備份檔案格式');
+            }
+
+            // Import the data
+            if (data.customTitles) {
+              this.customTitles = data.customTitles;
+              await this.saveCustomTitles();
+            }
+            if (data.notes) {
+              this.notes = data.notes;
+              await this.saveNotes();
+            }
+            if (data.selectedBook && this.books.includes(data.selectedBook)) {
+              this.selectedBook = data.selectedBook;
+              this.updateChapters();
+            }
+            if (data.selectedChapter && this.chapters.includes(data.selectedChapter)) {
+              this.selectedChapter = data.selectedChapter;
+            }
+            this.loadVerses();
+            await this.saveReadingPosition();
+
+            const noteCount = Object.keys(this.notes).length;
+            const titleCount = Object.keys(this.customTitles).length;
+            this.settingsModal.message = `已匯入 ${titleCount} 個標題和 ${noteCount} 個筆記`;
+            this.settingsModal.isError = false;
+          } catch (e) {
+            if (e.name === 'AbortError') {
+              // User cancelled
+              this.settingsModal.message = '';
+            } else {
+              console.error('Import failed:', e);
+              this.settingsModal.message = '匯入失敗：' + e.message;
+              this.settingsModal.isError = true;
+            }
+          } finally {
+            this.settingsModal.isBusy = false;
+          }
+        },
+
+        async unlinkFile() {
+          this.fileHandle = null;
+          await this.saveFileHandle();
+          this.settingsModal.message = '已解除檔案連結';
+          this.settingsModal.isError = false;
+        },
+
+        // Clear all cached versions except the currently selected one
+        async clearAllVersions() {
+          try {
+            const versionsToDelete = this.cachedVersions.filter(id => id !== this.selectedVersionId);
+            for (const versionId of versionsToDelete) {
+              await idbKeyval.del(`bible_version_${versionId}`);
+            }
+            this.cachedVersions = [this.selectedVersionId];
+            await this.saveCachedVersions();
+            this.settingsModal.message = `已清除 ${versionsToDelete.length} 個譯本快取`;
+            this.settingsModal.isError = false;
+          } catch (e) {
+            console.error('Failed to clear cache:', e);
+            this.settingsModal.message = '清除快取失敗：' + e.message;
+            this.settingsModal.isError = true;
+          }
+        },
+
+        // Auto-sync on data changes (call after saving notes/titles)
+        async triggerAutoSync() {
+          if (this.autoSync && this.fileHandle && this.hasFileSystemAccess) {
+            try {
+              // Verify permission before writing
+              const hasPermission = await this.verifyPermission(true);
+              if (!hasPermission) {
+                console.warn('Auto-sync skipped: permission denied');
+                return;
+              }
+
+              const data = this.getExportData();
+              const jsonString = JSON.stringify(data, null, 2);
+              const writable = await this.fileHandle.createWritable();
+              await writable.write(jsonString);
+              await writable.close();
+              console.log('Auto-synced to file');
+            } catch (e) {
+              console.warn('Auto-sync failed:', e);
+            }
+          }
+        },
+
+        // Strong's Number support
+        // Check if current version has Strong's Numbers
+        get hasSN() {
+          return this.selectedVersionId.includes('-SN') || this.selectedVersionId.includes('_SN');
+        },
+
+        // Get dictionary file name for current version
+        getDictFileName() {
+          // For SN versions, the dict file should match the version
+          // e.g., zh-rTW_CUV-SN -> zh-rTW_CUV-SN.dict
+          // e.g., en_KJV-SN -> en_KJV-SN.dict
+          return `${this.selectedVersionId}.dict`;
+        },
+
+        // Load dictionary for current version
+        async loadDictionary() {
+          if (!this.hasSN) return;
+          if (Object.keys(this.snDictionary).length > 0) return; // Already loaded
+
+          this.snDictLoading = true;
+
+          try {
+            // Try to load from cache first
+            const cacheKey = `bible_dict_${this.selectedVersionId}`;
+            let dictText = await idbKeyval.get(cacheKey);
+
+            if (!dictText) {
+              // Fetch from network
+              const dictFile = this.getDictFileName();
+              const response = await fetch(`./dict/${dictFile}`);
+              if (!response.ok) {
+                console.warn(`Dictionary not found: ${dictFile}`);
+                return;
+              }
+              dictText = await response.text();
+
+              // Cache it
+              try {
+                await idbKeyval.set(cacheKey, dictText);
+              } catch (e) {
+                console.warn('Failed to cache dictionary:', e);
+              }
+            }
+
+            // Parse dictionary: CODE,definition format
+            this.snDictionary = {};
+            const lines = dictText.split('\n');
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              const commaIndex = line.indexOf(',');
+              if (commaIndex > 0) {
+                const code = line.substring(0, commaIndex).trim();
+                const definition = line.substring(commaIndex + 1);
+                this.snDictionary[code] = definition;
+              }
+            }
+
+            console.log(`Loaded ${Object.keys(this.snDictionary).length} dictionary entries`);
+          } catch (e) {
+            console.error('Failed to load dictionary:', e);
+          } finally {
+            this.snDictLoading = false;
+          }
+        },
+
+        // Render verse text with clickable SN codes
+        renderVerseText(text) {
+          if (!this.hasSN || !text) {
+            // Escape HTML for safety
+            return this.escapeHtml(text);
+          }
+
+          // Match Strong's Number patterns: <H####> or <G####>
+          // H = Hebrew (OT), G = Greek (NT)
+          const snPattern = /<([HG]\d+)>/g;
+
+          // Replace SN codes with clickable spans
+          return text.replace(snPattern, (match, code) => {
+            return `<span class="sn-code" onclick="Alpine.$data(document.querySelector('[x-data]')).showSNDefinition('${code}')">${code}</span>`;
+          });
+        },
+
+        // Escape HTML to prevent XSS
+        escapeHtml(text) {
+          if (!text) return '';
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        },
+
+        // Show SN definition modal
+        async showSNDefinition(code) {
+          this.snModal.show = true;
+          this.snModal.code = code;
+          this.snModal.definition = '';
+          this.snModal.loading = true;
+
+          // Load dictionary if not loaded
+          if (Object.keys(this.snDictionary).length === 0) {
+            await this.loadDictionary();
+          }
+
+          this.snModal.loading = false;
+
+          // Look up definition
+          const definition = this.snDictionary[code];
+          if (definition) {
+            // Convert \n to <br> for display and escape HTML in the definition
+            this.snModal.definition = this.formatDefinition(definition);
+          }
+        },
+
+        // Format definition for display
+        formatDefinition(definition) {
+          if (!definition) return '';
+
+          // Replace literal \n with actual line breaks
+          let formatted = definition.replace(/\\n/g, '\n');
+
+          // Process special links BEFORE escaping HTML
+          // Pattern: <SN|display_text|code> -> clickable SN link
+          // Pattern: <Verse|display_text|BOOK:chapter:verse> -> clickable verse link
+          // Pattern: #<Verse|...|...>| -> verse with # prefix and | suffix
+
+          // First, replace the patterns with placeholders to protect them from HTML escaping
+          const snLinks = [];
+          const verseLinks = [];
+
+          // Extract SN links: <SN|display|code>
+          formatted = formatted.replace(/<SN\|([^|]+)\|([^>]+)>/g, (match, display, code) => {
+            const index = snLinks.length;
+            snLinks.push({ display, code });
+            return `__SN_LINK_${index}__`;
+          });
+
+          // Extract Verse links: <Verse|display|BOOK:chapter:verse> or #<Verse|...|...>|
+          formatted = formatted.replace(/#?<Verse\|([^|]+)\|([^>]+)>\|?/g, (match, display, ref) => {
+            const index = verseLinks.length;
+            verseLinks.push({ display, ref });
+            return `__VERSE_LINK_${index}__`;
+          });
+
+          // Escape HTML
+          formatted = this.escapeHtml(formatted);
+
+          // Restore SN links as clickable elements
+          snLinks.forEach((link, index) => {
+            const escapedDisplay = this.escapeHtml(link.display);
+            const clickHandler = `Alpine.$data(document.querySelector('[x-data]')).showSNDefinition('${link.code}')`;
+            formatted = formatted.replace(
+              `__SN_LINK_${index}__`,
+              `<span class="sn-link" onclick="${clickHandler}">${escapedDisplay}</span>`
+            );
+          });
+
+          // Restore Verse links as clickable elements
+          verseLinks.forEach((link, index) => {
+            const escapedDisplay = this.escapeHtml(link.display);
+            const clickHandler = `Alpine.$data(document.querySelector('[x-data]')).goToVerseByRef('${link.ref}')`;
+            formatted = formatted.replace(
+              `__VERSE_LINK_${index}__`,
+              `<span class="verse-link" onclick="${clickHandler}">${escapedDisplay}</span>`
+            );
+          });
+
+          // Convert newlines to <br>
+          formatted = formatted.replace(/\n/g, '<br>');
+
+          return formatted;
+        },
+
+        // Navigate to verse by reference string (e.g., "ISA:59:9" or "MAT:15:23")
+        goToVerseByRef(ref) {
+          // Parse format: BOOK:chapter:verse or BOOK:chapter
+          const parts = ref.split(':');
+          if (parts.length < 2) return;
+
+          const bookCode = parts[0];
+          const chapter = parseInt(parts[1]);
+          const verseNum = parts.length > 2 ? parseInt(parts[2]) : 1;
+
+          // Get book name from mapping
+          const bookName = BOOK_NAMES[bookCode];
+          if (!bookName || !this.books.includes(bookName)) {
+            console.warn(`Book not found: ${bookCode}`);
+            return;
+          }
+
+          // Close modal and navigate
+          this.snModal.show = false;
+          this.selectedBook = bookName;
+          this.updateChapters();
+
+          if (this.chapters.includes(chapter)) {
+            this.selectedChapter = chapter;
+          } else {
+            this.selectedChapter = this.chapters[0] || 1;
+          }
+
+          this.loadVerses();
+          this.saveReadingPosition();
+
+          // Scroll to and highlight the verse after DOM updates
+          this.$nextTick(() => {
+            this.scrollToAndHighlightVerse(verseNum);
+          });
+        },
+
+        // Scroll to a specific verse and highlight it
+        scrollToAndHighlightVerse(verseNum) {
+          // Small delay to ensure animations are complete
+          setTimeout(() => {
+            const verseElement = document.querySelector(`[data-verse-num="${verseNum}"]`);
+            if (verseElement) {
+              // Scroll the verse into view with some offset for the header
+              const headerHeight = 80;
+              const elementTop = verseElement.getBoundingClientRect().top + window.scrollY;
+              window.scrollTo({
+                top: elementTop - headerHeight - 20,
+                behavior: 'smooth'
+              });
+
+              // Remove class first if present, force reflow, then add back to restart animation
+              verseElement.classList.remove('verse-highlight');
+              void verseElement.offsetWidth;
+              verseElement.classList.add('verse-highlight');
+              // Don't remove the class - it will stay at final animation state (no visual effect)
+              // Removing it would cause the verse-item opacity:0 to kick in again
+            }
+          }, 100);
         }
       };
     }
