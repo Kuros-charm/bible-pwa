@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bunx --bun vite", 
+    "dev-host": "bunx --bun vite --host 0.0.0.0",
+    "dev": "bunx --bun vite",
     "build": "bunx --bun vite build",
     "build-gh": "bunx --bun vite build --mode github",
     "preview": "bunx --bun vite preview"
@@ -18,5 +19,9 @@
   "resolutions": {
     "sharp": "^0.33.5",
     "sharp-ico": "^0.1.5"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "tailwindcss": "^4.1.18"
   }
 }
