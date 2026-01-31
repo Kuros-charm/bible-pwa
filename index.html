@@ -341,39 +341,18 @@
       :class="tts.show ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0'">
       <div class="max-w-4xl mx-auto px-4 pt-2 pb-3">
         <div class="flex flex-wrap items-center gap-3">
-          <!-- Play/Pause/Stop Controls -->
+          <!-- Play/Stop Toggle Button -->
           <div class="flex items-center gap-1">
-            <button @click="ttsPlay()"
-              :disabled="tts.playing || tts.paused"
+            <button @click="ttsToggle()"
+              :disabled="!tts.playing && !tts.paused && (!currentVerses || currentVerses.length === 0)"
               class="p-2 rounded-lg transition-colors disabled:opacity-50"
-              :class="tts.playing ? 'bg-accent text-white' : 'bg-secondary text-primary hover:bg-primary hover:text-accent'"
-              title="播放">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              :class="tts.playing || tts.paused ? 'bg-accent text-white' : 'bg-secondary text-primary hover:bg-primary hover:text-accent'"
+              :title="tts.playing || tts.paused ? '停止' : '播放'">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="!(tts.playing || tts.paused)">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-            </button>
-            <button @click="ttsPause()"
-              :disabled="!tts.playing"
-              class="p-2 rounded-lg bg-secondary text-primary hover:bg-primary hover:text-accent transition-colors"
-              title="暫停">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"></path>
-              </svg>
-            </button>
-            <button @click="ttsResume()"
-              :disabled="!tts.paused"
-              class="p-2 rounded-lg bg-secondary text-primary hover:bg-primary hover:text-accent transition-colors"
-              title="繼續">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-              </svg>
-            </button>
-            <button @click="ttsStop()"
-              :disabled="!tts.playing && !tts.paused"
-              class="p-2 rounded-lg bg-secondary text-primary hover:bg-primary hover:text-accent transition-colors"
-              title="停止">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="tts.playing || tts.paused">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
               </svg>
@@ -2115,6 +2094,14 @@
           });
           const verse = this.currentVerses[this.tts.currentVerseIndex];
           this.showVerseActions(verse);
+        },
+
+        ttsToggle() {
+          if (this.tts.playing || this.tts.paused) {
+            this.ttsStop();
+          } else {
+            this.ttsPlay();
+          }
         },
 
         // Generic IndexedDB helpers
