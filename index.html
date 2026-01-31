@@ -214,10 +214,15 @@
       padding: 0.75rem 1rem;
       border-top: 1px solid var(--border);
     }
+
+    /* Prevent background scroll when any dialog is open */
+    body:has(dialog[open]) {
+      overflow: hidden;
+    }
   </style>
 </head>
 
-<body class="min-h-screen" x-data="bibleReader()" :class="{ 'overflow-hidden': isAnyDrawerOpen }">
+<body class="min-h-screen" x-data="bibleReader()">
   <script type="module" src="./src/main.js"></script>
   <script>
     // Prevent pinch zoom on Safari (ignores viewport meta)
@@ -2239,17 +2244,6 @@
         // Get current selected version info
         get currentVersion() {
           return this.availableVersions.find(v => v.id === this.selectedVersionId) || this.availableVersions[0];
-        },
-
-        // Check if any drawer/modal is open (to prevent background scroll)
-        get isAnyDrawerOpen() {
-          return this.settingsModal.show ||
-                 (this.$refs.versionDialog && this.$refs.versionDialog.open) ||
-                 (this.$refs.snDialog && this.$refs.snDialog.open) ||
-                 (this.$refs.verseDialog && this.$refs.verseDialog.open) ||
-                 this.navModal.show ||
-                 this.historyModal.show ||
-                 this.headerActionsModal.show;
         },
 
         // Check if a version is cached
