@@ -59,12 +59,6 @@
       padding: 0rem 0.5rem;
     }
 
-    @keyframes verseHighlight {
-      0% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 20px rgba(139, 69, 19, 0.3); }
-      100% { box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent; }
-    }
-    .verse-highlight { animation: verseHighlight 2s ease-out forwards; border-radius: 0.5rem; background-color: var(--bg-secondary) !important; }
-
     /* === Components using CSS vars (can't fully convert to Tailwind) === */
     .section-title { color: var(--accent); font-weight: 700; }
     .source-title { color: var(--text-secondary); font-weight: 600; font-style: italic; opacity: 0.85; }
@@ -72,13 +66,8 @@
     .modal-content { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 400px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
     .verse-container { user-select: none; -webkit-user-select: none; cursor: pointer; transition: box-shadow 0.2s ease, border-radius 0.2s ease; }
     .verse-container.tts-playing { pointer-events: none; cursor: default; }
-    .verse-tts-active { animation: ttsPulse 1s ease-in-out infinite; border-radius: 0.5rem; }
-    @keyframes ttsPulse {
-      0%, 100% { box-shadow: inset 0 0 0 2px var(--accent); }
-      50% { box-shadow: inset 0 0 0 4px var(--accent-light); }
-    }
-    .verse-selected { }
-    .verse-selected .verse-num-selected { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
+    .verse-selected sup { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
+    .verse-tts sup { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
 
     /* === Dynamic content styles (used in x-html, can't use Tailwind) === */
     .sn-code { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; transition: color 0.2s; margin: 0 0.15em; }
@@ -512,11 +501,11 @@
               <!-- Verse Content -->
               <div class="verse-item"
                 :data-verse-num="verse.verseNum"
-                :class="{ 
+                :class="{
                   'verse-selected': verseActions.show && verseActions.verse?.ref === verse.ref && !(tts.playing || tts.paused),
-                  'verse-tts-active': (tts.playing || tts.paused) && tts.currentVerseIndex === index
+                  'verse-tts': (tts.playing || tts.paused) && tts.currentVerseIndex === index
                 }"
-                :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + ((getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '') + ((tts.playing || tts.paused) && tts.currentVerseIndex === index ? `background-color: var(--accent-light); color: var(--bg-primary);` : '')">
+                :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + (getHighlightColor(verse.ref) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '')">
                 <sup :class="[getHighlightColor(verse.ref) && !(tts.playing || tts.paused) ? '' : 'text-accent', (verseActions.show && verseActions.verse?.ref === verse.ref && !getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? 'verse-num-selected' : '']" class="font-medium opacity-70" :style="`font-size: 0.75em; margin-right: 0em;` + ((verseActions.show && verseActions.verse?.ref === verse.ref && getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightTextColor(verse.ref)}; color: ${getHighlightColor(verse.ref)}; box-shadow: -0.25em 0 0 ${getHighlightTextColor(verse.ref)}, 0.25em 0 0 ${getHighlightTextColor(verse.ref)};` : '')" x-text="verse.verseNum"></sup>
                 <span x-html="renderVerseText(verse.text)"></span>
                 <button x-show="notes[verse.ref] && !(tts.playing || tts.paused)" @click.stop="openNoteModal(verse)"
@@ -2053,7 +2042,6 @@
 
         async ttsSpeakCurrentVerse() {
           if (this.tts.currentVerseIndex >= this.currentVerses.length) {
-            // End of chapter
             this.ttsStop();
             return;
           }
@@ -2063,6 +2051,12 @@
             this.ttsStop();
             return;
           }
+          
+          const currentVerseEl = document.querySelector(`[data-verse-num="${verse.verseNum}"]`);
+
+          
+          // Scroll to current verse
+          currentVerseEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
           const text = this.renderVerseText(verse.text).replace(/<[^>]*>/g, '');
           const utterance = new SpeechSynthesisUtterance(text);
@@ -2076,7 +2070,6 @@
           }
           
           utterance.onend = () => {
-            // Move to next verse
             this.tts.currentVerseIndex++;
             this.ttsSpeakCurrentVerse();
           };
@@ -2116,6 +2109,12 @@
           speechSynthesis.cancel();
           this.tts.playing = false;
           this.tts.paused = false;
+          // Remove highlight from all verses
+          document.querySelectorAll('.verse-item.verse-tts').forEach(el => {
+            el.classList.remove('verse-tts');
+          });
+          const verse = this.currentVerses[this.tts.currentVerseIndex];
+          this.showVerseActions(verse);
         },
 
         // Generic IndexedDB helpers
