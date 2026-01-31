@@ -638,7 +638,7 @@
 
   <!-- Unified Verse Modal (Title/Note/Highlight) - Uses reusable drawer pattern -->
   <dialog x-ref="verseDialog"
-    @close="verseModal.show = false"
+    @close="verseModal.show = false; $nextTick(() => { if (verseModal.verse) showVerseActions(verseModal.verse) })"
     @click="if ($event.target === $el) $el.close()"
     class="drawer-dialog">
     <div class="drawer-panel-container">
@@ -1288,7 +1288,7 @@
             <span x-text="getBookName(navModal.pendingBook || selectedBook)"></span>
           </button>
         </div>
-        <button onclick="applyNavSelection(); this.closest('dialog').close()" class="drawer-close-btn ml-2">
+        <button @click="applyNavSelection(); $event.target.closest('dialog').close()" class="drawer-close-btn ml-2">
           <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
