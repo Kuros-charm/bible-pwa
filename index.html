@@ -405,7 +405,7 @@
         <!-- Playing indicator -->
         <div x-show="tts.playing || tts.paused" class="mt-2 text-sm text-secondary">
           <span x-text="tts.playing ? '🔊 播放中' : '⏸ 已暫停'"></span>
-          <span x-show="currentVerses[tts.currentVerseIndex]"> - <span x-text="formatRef(currentVerses[tts.currentVerseIndex].ref)"></span></span>
+          <span x-show="currentVerses[tts.currentVerseIndex]"> - <span x-text="currentVerses[tts.currentVerseIndex] ? formatRef(currentVerses[tts.currentVerseIndex].ref): ''"></span></span>
         </div>
       </div>
     </div>
@@ -2884,6 +2884,18 @@
           return chapterIndex < this.chapters.length - 1 || bookIndex < this.books.length - 1;
         },
 
+        clearChapterState() {
+          this.verseActions.show = false;
+          this.verseActions.verse = null;
+          this.compareVerseRef = null;
+          this.compareVerses = [];
+          this.verseModal.show = false;
+          speechSynthesis.cancel();
+          this.tts.playing = false;
+          this.tts.paused = false;
+          this.tts.currentVerseIndex = 0;
+        },
+
         prevChapter() {
           const chapterIndex = this.chapters.indexOf(this.selectedChapter);
           if (chapterIndex > 0) {
@@ -2898,6 +2910,7 @@
               this.loadVerses();
             }
           }
+          this.clearChapterState();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         },
 
@@ -2915,6 +2928,7 @@
               this.loadVerses();
             }
           }
+          this.clearChapterState();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         },
 
