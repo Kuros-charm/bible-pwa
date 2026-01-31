@@ -2952,10 +2952,16 @@
           this.selectedChapter = verse.chapter;
           this.loadVerses();
           this.clearSearch();
+          this.headerSearchOpen = false;
 
-          // Scroll to and highlight the verse after DOM updates
+          // Scroll to, highlight, and show verse actions after DOM updates
           this.$nextTick(() => {
             this.scrollToAndHighlightVerse(verse.verseNum);
+            // Find the verse in currentVerses and show actions
+            const currentVerse = this.currentVerses.find(v => v.verseNum === verse.verseNum && v.ref === verse.ref);
+            if (currentVerse) {
+              this.showVerseActions(currentVerse);
+            }
           });
         },
 
@@ -2979,6 +2985,7 @@
           switch (actionId) {
             case 'search':
               this.headerSearchOpen = !this.headerSearchOpen;
+              this.tts.show = false;
               if (!this.headerSearchOpen) {
                 this.searchQuery = '';
                 this.searchResults = [];
@@ -2988,6 +2995,7 @@
               break;
             case 'tts':
               this.tts.show = !this.tts.show;
+              this.headerSearchOpen = false;
               if (this.tts.show && this.tts.voices.length === 0) {
                 this.initTTS();
               }
