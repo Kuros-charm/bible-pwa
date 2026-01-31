@@ -223,6 +223,11 @@
 </head>
 
 <body class="min-h-screen" x-data="bibleReader()">
+  <svg style="display: none;">
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    </symbol>
+  </svg>
   <script type="module" src="./src/main.js"></script>
   <script>
     // Prevent pinch zoom on Safari (ignores viewport meta)
@@ -568,10 +573,8 @@
           <span x-text="verseModalConfig.label"></span>
           <span class="text-secondary font-normal" x-text="verseModal.verse ? ' - ' + formatRef(verseModal.verse.ref) : ''"></span>
         </h3>
-        <button @click="$refs.verseDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <!-- Verse Reference - scrollable, height for 2 lines -->
@@ -684,10 +687,8 @@
           <span>📖</span>
           <span x-text="snModal.code"></span>
         </h3>
-        <button @click="$refs.snDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <div class="drawer-content scrollbar-thin"
@@ -916,10 +917,8 @@
             <span>🔧</span>
             <span>Title</span>
           </h3>
-          <button @click="$refs.yourDialogRef.close()" class="drawer-close-btn">
-            <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+          <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+            <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
           </button>
         </div>
         <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
@@ -946,10 +945,8 @@
           <span>⚙️</span>
           <span>設定</span>
         </h3>
-        <button @click="$refs.settingsDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
@@ -1092,10 +1089,8 @@
           <span>🕐</span>
           <span>閱讀紀錄</span>
         </h3>
-        <button @click="$refs.historyDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
@@ -1135,10 +1130,8 @@
           <span>🔧</span>
           <span>工具列按鈕</span>
         </h3>
-        <button @click="$refs.headerActionsDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
@@ -1219,10 +1212,8 @@
             <span x-text="getBookName(navModal.pendingBook || selectedBook)"></span>
           </button>
         </div>
-        <button @click="applyNavSelection()" class="drawer-close-btn ml-2">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="applyNavSelection(); this.closest('dialog').close()" class="drawer-close-btn ml-2">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
 
@@ -1319,10 +1310,8 @@
           <span>📚</span>
           <span>選擇譯本</span>
         </h3>
-        <button @click="$refs.versionDialog.close()" class="drawer-close-btn">
-          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button onclick="this.closest('dialog').close()" class="drawer-close-btn">
+          <svg class="w-5 h-5 text-secondary"><use href="#icon-close"></use></svg>
         </button>
       </div>
       <!-- Custom Tab Switcher (instead of standard drawer-header) -->
