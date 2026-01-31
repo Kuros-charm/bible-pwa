@@ -1766,21 +1766,21 @@
         async loadFromStorage() {
           try {
             const [savedTitles, savedNotes, savedBook, savedChapter, savedAutoSync, savedFileHandle, savedVersionId, savedCachedVersions, savedFontSize, savedLineHeight, savedVerseSpacing, savedFontFamily, savedHighlightDefs, savedVerseHighlights, savedZoom] = await Promise.all([
-              idbKeyval.get('bible_customTitles'),
-              idbKeyval.get('bible_notes'),
-              idbKeyval.get('bible_selectedBook'),
-              idbKeyval.get('bible_selectedChapter'),
-              idbKeyval.get('bible_autoSync'),
-              idbKeyval.get('bible_fileHandle'),
-              idbKeyval.get('bible_selectedVersion'),
-              idbKeyval.get('bible_cachedVersions'),
-              idbKeyval.get('bible_fontSize'),
-              idbKeyval.get('bible_lineHeight'),
-              idbKeyval.get('bible_verseSpacing'),
-              idbKeyval.get('bible_fontFamily'),
-              idbKeyval.get('bible_highlightDefs'),
-              idbKeyval.get('bible_verseHighlights'),
-              idbKeyval.get('bible_zoom')
+              this._storageLoad('bible_customTitles'),
+              this._storageLoad('bible_notes'),
+              this._storageLoad('bible_selectedBook'),
+              this._storageLoad('bible_selectedChapter'),
+              this._storageLoad('bible_autoSync'),
+              this._storageLoad('bible_fileHandle'),
+              this._storageLoad('bible_selectedVersion'),
+              this._storageLoad('bible_cachedVersions'),
+              this._storageLoad('bible_fontSize'),
+              this._storageLoad('bible_lineHeight'),
+              this._storageLoad('bible_verseSpacing'),
+              this._storageLoad('bible_fontFamily'),
+              this._storageLoad('bible_highlightDefs'),
+              this._storageLoad('bible_verseHighlights'),
+              this._storageLoad('bible_zoom')
             ]);
 
             if (savedTitles) {
@@ -1856,16 +1856,33 @@
           }
         },
 
+        // Generic IndexedDB helpers
+        async _storageSave(key, value) {
+          try {
+            await idbKeyval.set(key, value);
+          } catch (e) {
+            console.warn(`Failed to save ${key}:`, e);
+          }
+        },
+        async _storageLoad(key) {
+          try {
+            return await idbKeyval.get(key);
+          } catch (e) {
+            console.warn(`Failed to load ${key}:`, e);
+            return undefined;
+          }
+        },
+
         // Save file handle to IndexedDB
         async saveFileHandle() {
-          try {
-            if (this.fileHandle) {
-              await idbKeyval.set('bible_fileHandle', this.fileHandle);
-            } else {
+          if (this.fileHandle) {
+            await this._storageSave('bible_fileHandle', this.fileHandle);
+          } else {
+            try {
               await idbKeyval.del('bible_fileHandle');
+            } catch (e) {
+              console.warn('Failed to delete file handle:', e);
             }
-          } catch (e) {
-            console.warn('Failed to save file handle:', e);
           }
         },
 
@@ -1889,48 +1906,32 @@
         },
 
         async saveCustomTitles() {
-          try {
-            // Clone to plain object to avoid DataCloneError with Alpine proxies
-            await idbKeyval.set('bible_customTitles', JSON.parse(JSON.stringify(this.customTitles)));
-            await this.triggerAutoSync();
-          } catch (e) {
-            console.warn('Failed to save custom titles:', e);
-          }
+          const value = JSON.parse(JSON.stringify(this.customTitles));
+          await this._storageSave('bible_customTitles', value);
+          await this.triggerAutoSync();
         },
 
         async saveNotes() {
-          try {
-            // Clone to plain object to avoid DataCloneError with Alpine proxies
-            await idbKeyval.set('bible_notes', JSON.parse(JSON.stringify(this.notes)));
-            await this.triggerAutoSync();
-          } catch (e) {
-            console.warn('Failed to save notes:', e);
-          }
+          const value = JSON.parse(JSON.stringify(this.notes));
+          await this._storageSave('bible_notes', value);
+          await this.triggerAutoSync();
         },
 
         async saveReadingPosition() {
-          try {
-            await Promise.all([
-              idbKeyval.set('bible_selectedBook', this.selectedBook),
-              idbKeyval.set('bible_selectedChapter', this.selectedChapter)
-            ]);
-          } catch (e) {
-            console.warn('Failed to save reading position:', e);
-          }
+          await Promise.all([
+            this._storageSave('bible_selectedBook', this.selectedBook),
+            this._storageSave('bible_selectedChapter', this.selectedChapter)
+          ]);
         },
 
         async saveReadingPreferences() {
-          try {
-            await Promise.all([
-              idbKeyval.set('bible_fontSize', this.fontSize),
-              idbKeyval.set('bible_lineHeight', this.lineHeight),
-              idbKeyval.set('bible_verseSpacing', this.verseSpacing),
-              idbKeyval.set('bible_fontFamily', this.fontFamily),
-              idbKeyval.set('bible_zoom', this.zoom)
-            ]);
-          } catch (e) {
-            console.warn('Failed to save reading preferences:', e);
-          }
+          await Promise.all([
+            this._storageSave('bible_fontSize', this.fontSize),
+            this._storageSave('bible_lineHeight', this.lineHeight),
+            this._storageSave('bible_verseSpacing', this.verseSpacing),
+            this._storageSave('bible_fontFamily', this.fontFamily),
+            this._storageSave('bible_zoom', this.zoom)
+          ]);
         },
 
         // Show reading overlay control
@@ -2242,20 +2243,18 @@
 
         // Save selected version preference
         async saveSelectedVersion() {
-          try {
-            await idbKeyval.set('bible_selectedVersion', this.selectedVersionId);
-          } catch (e) {
-            console.warn('Failed to save selected version:', e);
-          }
+          await this._storageSave('bible_selectedVersion', this.selectedVersionId);
+        },
+
+        async saveCachedVersions() {
+          const value = JSON.parse(JSON.stringify(this.cachedVersions));
+          await this._storageSave('bible_cachedVersions', value);
         },
 
         // Save cached versions list
         async saveCachedVersions() {
-          try {
-            await idbKeyval.set('bible_cachedVersions', JSON.parse(JSON.stringify(this.cachedVersions)));
-          } catch (e) {
-            console.warn('Failed to save cached versions list:', e);
-          }
+          const value = JSON.parse(JSON.stringify(this.cachedVersions));
+          await this._storageSave('bible_cachedVersions', value);
         },
 
         // Download and cache a Bible version
@@ -2766,35 +2765,26 @@
         },
 
         async saveHeaderActions() {
-          try {
-            await idbKeyval.set('bible_headerActions', JSON.parse(JSON.stringify(this.headerActions)));
-          } catch (e) {
-            console.warn('Failed to save header actions:', e);
-          }
+          const value = JSON.parse(JSON.stringify(this.headerActions));
+          await this._storageSave('bible_headerActions', value);
         },
 
         async loadHeaderActions() {
-          try {
-            const saved = await idbKeyval.get('bible_headerActions');
-            if (saved && Array.isArray(saved)) {
-              // Merge saved config with defaults (in case new actions are added)
-              const defaultActions = [
-                { id: 'search', name: '搜尋', icon: 'search', visible: true },
-                { id: 'history', name: '閱讀紀錄', icon: 'clock', visible: true },
-                { id: 'settings', name: '設定', icon: 'settings', visible: true }
-              ];
-              // Keep order from saved, update with any new defaults
-              const savedIds = saved.map(a => a.id);
-              const merged = saved.filter(a => defaultActions.some(d => d.id === a.id));
-              defaultActions.forEach(d => {
-                if (!savedIds.includes(d.id)) {
-                  merged.push(d);
-                }
-              });
-              this.headerActions = merged;
-            }
-          } catch (e) {
-            console.warn('Failed to load header actions:', e);
+          const saved = await this._storageLoad('bible_headerActions');
+          if (saved && Array.isArray(saved)) {
+            const defaultActions = [
+              { id: 'search', name: '搜尋', icon: 'search', visible: true },
+              { id: 'history', name: '閱讀紀錄', icon: 'clock', visible: true },
+              { id: 'settings', name: '設定', icon: 'settings', visible: true }
+            ];
+            const savedIds = saved.map(a => a.id);
+            const merged = saved.filter(a => defaultActions.some(d => d.id === a.id));
+            defaultActions.forEach(d => {
+              if (!savedIds.includes(d.id)) {
+                merged.push(d);
+              }
+            });
+            this.headerActions = merged;
           }
         },
 
@@ -2998,23 +2988,14 @@
 
         // Save compare order to storage
         async saveCompareVersionOrder() {
-          try {
-            await idbKeyval.set('bible_compare_order', this.compareVersionOrder);
-          } catch (e) {
-            console.warn('Failed to save compare order:', e);
-          }
+          await this._storageSave('bible_compare_order', this.compareVersionOrder);
         },
 
         // Load compare order from storage
         async loadCompareVersionOrder() {
-          try {
-            const saved = await idbKeyval.get('bible_compare_order');
-            if (Array.isArray(saved)) {
-              // Filter out any versions that are no longer cached
-              this.compareVersionOrder = saved.filter(id => this.cachedVersions.includes(id));
-            }
-          } catch (e) {
-            console.warn('Failed to load compare order:', e);
+          const saved = await this._storageLoad('bible_compare_order');
+          if (Array.isArray(saved)) {
+            this.compareVersionOrder = saved.filter(id => this.cachedVersions.includes(id));
           }
         },
 
@@ -3148,24 +3129,18 @@
         },
 
         async saveHighlights() {
-          try {
-            await idbKeyval.set('bible_verseHighlights', JSON.parse(JSON.stringify(this.verseHighlights)));
-            if (this.autoSync && this.fileHandle) {
-              await this.syncToFile();
-            }
-          } catch (e) {
-            console.warn('Failed to save highlights:', e);
+          const value = JSON.parse(JSON.stringify(this.verseHighlights));
+          await this._storageSave('bible_verseHighlights', value);
+          if (this.autoSync && this.fileHandle) {
+            await this.syncToFile();
           }
         },
 
         async saveHighlightDefs() {
-          try {
-            await idbKeyval.set('bible_highlightDefs', JSON.parse(JSON.stringify(this.highlightDefs)));
-            if (this.autoSync && this.fileHandle) {
-              await this.syncToFile();
-            }
-          } catch (e) {
-            console.warn('Failed to save highlight definitions:', e);
+          const value = JSON.parse(JSON.stringify(this.highlightDefs));
+          await this._storageSave('bible_highlightDefs', value);
+          if (this.autoSync && this.fileHandle) {
+            await this.syncToFile();
           }
         },
 
@@ -3201,11 +3176,7 @@
 
         // Settings & File System Access API methods
         async saveAutoSyncPreference() {
-          try {
-            await idbKeyval.set('bible_autoSync', this.autoSync);
-          } catch (e) {
-            console.warn('Failed to save auto-sync preference:', e);
-          }
+          await this._storageSave('bible_autoSync', this.autoSync);
         },
 
         getExportData() {
@@ -3799,23 +3770,21 @@
         // === Reading History Methods ===
         // Load reading history from IndexedDB
         async loadReadingHistory() {
-          try {
-            const savedHistory = await idbKeyval.get('bible_readingHistory');
-            if (savedHistory && Array.isArray(savedHistory)) {
-              this.readingHistory = savedHistory;
-            }
-          } catch (e) {
-            console.warn('Failed to load reading history:', e);
+          const savedHistory = await this._storageLoad('bible_readingHistory');
+          if (savedHistory && Array.isArray(savedHistory)) {
+            this.readingHistory = savedHistory;
           }
+        },
+
+        async saveReadingHistory() {
+          const value = JSON.parse(JSON.stringify(this.readingHistory));
+          await this._storageSave('bible_readingHistory', value);
         },
 
         // Save reading history to IndexedDB
         async saveReadingHistory() {
-          try {
-            await idbKeyval.set('bible_readingHistory', JSON.parse(JSON.stringify(this.readingHistory)));
-          } catch (e) {
-            console.warn('Failed to save reading history:', e);
-          }
+          const value = JSON.parse(JSON.stringify(this.readingHistory));
+          await this._storageSave('bible_readingHistory', value);
         },
 
         // Add a new entry to reading history
