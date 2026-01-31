@@ -360,7 +360,7 @@
           <!-- Speed Control -->
           <div class="flex items-center gap-2">
             <span class="text-secondary text-sm">速度</span>
-            <button @click="ttsSpeed -= 0.25; ttsSpeed = Math.max(0.5, ttsSpeed)"
+            <button @click="tts.speed -= 0.1; tts.speed = Math.max(0.5, tts.speed); saveTtsSettings()"
               :disabled="tts.speed <= 0.5"
               class="p-1 rounded hover:bg-secondary text-secondary transition-colors">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,7 +368,7 @@
               </svg>
             </button>
             <span class="text-primary font-medium min-w-[3ch] text-center" x-text="tts.speed.toFixed(2) + 'x'"></span>
-            <button @click="ttsSpeed += 0.25; ttsSpeed = Math.min(2, ttsSpeed)"
+            <button @click="tts.speed += 0.1; tts.speed = Math.min(2, tts.speed); saveTtsSettings()"
               :disabled="tts.speed >= 2"
               class="p-1 rounded hover:bg-secondary text-secondary transition-colors">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,13 +379,13 @@
 
           <!-- Language/Voice Selection -->
           <div class="flex items-center gap-2">
-            <select x-model="tts.language" @change="onTtsLanguageChange()"
+            <select x-model="tts.language" @change="onTtsLanguageChange(); saveTtsSettings()"
               class="bg-secondary border border-custom rounded-lg px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent/30">
               <option value="zh-TW">中文（國語）</option>
               <option value="zh-HK">中文（粵語）</option>
               <option value="en-US">English</option>
             </select>
-            <select x-model="tts.selectedVoice" x-show="tts.voices.length > 0"
+            <select x-model="tts.selectedVoice" x-show="tts.voices.length > 0" @change="saveTtsSettings()"
               class="bg-secondary border border-custom rounded-lg px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 max-w-[150px]">
               <template x-for="voice in tts.voices" :key="voice.name">
                 <option :value="voice.name" x-text="voice.name"></option>
@@ -1856,7 +1856,7 @@
         // IndexedDB helpers using idb-keyval
         async loadFromStorage() {
           try {
-            const [savedTitles, savedNotes, savedBook, savedChapter, savedAutoSync, savedFileHandle, savedVersionId, savedCachedVersions, savedFontSize, savedLineHeight, savedVerseSpacing, savedFontFamily, savedHighlightDefs, savedVerseHighlights, savedZoom] = await Promise.all([
+            const [savedTitles, savedNotes, savedBook, savedChapter, savedAutoSync, savedFileHandle, savedVersionId, savedCachedVersions, savedFontSize, savedLineHeight, savedVerseSpacing, savedFontFamily, savedHighlightDefs, savedVerseHighlights, savedZoom, savedTtsSpeed, savedTtsLanguage, savedTtsVoice] = await Promise.all([
               this._storageLoad('bible_customTitles'),
               this._storageLoad('bible_notes'),
               this._storageLoad('bible_selectedBook'),
@@ -1871,7 +1871,10 @@
               this._storageLoad('bible_fontFamily'),
               this._storageLoad('bible_highlightDefs'),
               this._storageLoad('bible_verseHighlights'),
-              this._storageLoad('bible_zoom')
+              this._storageLoad('bible_zoom'),
+              this._storageLoad('bible_ttsSpeed'),
+              this._storageLoad('bible_ttsLanguage'),
+              this._storageLoad('bible_ttsVoice')
             ]);
 
             if (savedTitles) {
@@ -1932,6 +1935,17 @@
             }
             if (savedVerseHighlights) {
               this.verseHighlights = this.migrateRefKeys(savedVerseHighlights);
+            }
+
+            // Restore TTS settings
+            if (savedTtsSpeed && savedTtsSpeed >= 0.5 && savedTtsSpeed <= 2) {
+              this.tts.speed = savedTtsSpeed;
+            }
+            if (savedTtsLanguage) {
+              this.tts.language = savedTtsLanguage;
+            }
+            if (savedTtsVoice) {
+              this.tts.selectedVoice = savedTtsVoice;
             }
 
             // Load compare version order
@@ -2181,6 +2195,14 @@
             this._storageSave('bible_verseSpacing', this.verseSpacing),
             this._storageSave('bible_fontFamily', this.fontFamily),
             this._storageSave('bible_zoom', this.zoom)
+          ]);
+        },
+
+        async saveTtsSettings() {
+          await Promise.all([
+            this._storageSave('bible_ttsSpeed', this.tts.speed),
+            this._storageSave('bible_ttsLanguage', this.tts.language),
+            this._storageSave('bible_ttsVoice', this.tts.selectedVoice)
           ]);
         },
 
