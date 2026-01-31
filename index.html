@@ -54,17 +54,16 @@
     .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--accent-light); border-radius: 3px; }
 
     /* === Animations === */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .verse-item {
+      opacity: 1;
+      padding: 0rem 0.5rem;
     }
-    .verse-item { opacity: 0; animation: fadeIn 0.4s ease-out forwards; padding: 0rem 0.5rem; }
 
     @keyframes verseHighlight {
       0% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 20px rgba(139, 69, 19, 0.3); }
       100% { box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent; }
     }
-    .verse-highlight { animation: verseHighlight 2s ease-out forwards; border-radius: 0.5rem; background-color: var(--bg-secondary) !important; opacity: 1 !important; }
+    .verse-highlight { animation: verseHighlight 2s ease-out forwards; border-radius: 0.5rem; background-color: var(--bg-secondary) !important; }
 
     /* === Components using CSS vars (can't fully convert to Tailwind) === */
     .section-title { color: var(--accent); font-weight: 700; }
@@ -517,7 +516,7 @@
                   'verse-selected': verseActions.show && verseActions.verse?.ref === verse.ref && !(tts.playing || tts.paused),
                   'verse-tts-active': (tts.playing || tts.paused) && tts.currentVerseIndex === index
                 }"
-                :style="`animation-delay: ${index * 50}ms; font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + ((getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '') + ((tts.playing || tts.paused) && tts.currentVerseIndex === index ? `background-color: var(--accent-light); color: var(--bg-primary);` : '')">
+                :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + ((getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '') + ((tts.playing || tts.paused) && tts.currentVerseIndex === index ? `background-color: var(--accent-light); color: var(--bg-primary);` : '')">
                 <sup :class="[getHighlightColor(verse.ref) && !(tts.playing || tts.paused) ? '' : 'text-accent', (verseActions.show && verseActions.verse?.ref === verse.ref && !getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? 'verse-num-selected' : '']" class="font-medium opacity-70" :style="`font-size: 0.75em; margin-right: 0em;` + ((verseActions.show && verseActions.verse?.ref === verse.ref && getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightTextColor(verse.ref)}; color: ${getHighlightColor(verse.ref)}; box-shadow: -0.25em 0 0 ${getHighlightTextColor(verse.ref)}, 0.25em 0 0 ${getHighlightTextColor(verse.ref)};` : '')" x-text="verse.verseNum"></sup>
                 <span x-html="renderVerseText(verse.text)"></span>
                 <button x-show="notes[verse.ref] && !(tts.playing || tts.paused)" @click.stop="openNoteModal(verse)"
@@ -4016,11 +4015,9 @@
 
         // Scroll to a specific verse and highlight it
         scrollToAndHighlightVerse(verseNum) {
-          // Small delay to ensure animations are complete
           setTimeout(() => {
             const verseElement = document.querySelector(`[data-verse-num="${verseNum}"]`);
             if (verseElement) {
-              // Scroll the verse into view with some offset for the header
               const headerHeight = 80;
               const elementTop = verseElement.getBoundingClientRect().top + window.scrollY;
               window.scrollTo({
@@ -4028,12 +4025,10 @@
                 behavior: 'smooth'
               });
 
-              // Remove class first if present, force reflow, then add back to restart animation
+              // Restart verse highlight animation
               verseElement.classList.remove('verse-highlight');
               void verseElement.offsetWidth;
               verseElement.classList.add('verse-highlight');
-              // Don't remove the class - it will stay at final animation state (no visual effect)
-              // Removing it would cause the verse-item opacity:0 to kick in again
             }
           }, 100);
         },
@@ -4047,12 +4042,6 @@
           }
         },
 
-        async saveReadingHistory() {
-          const value = JSON.parse(JSON.stringify(this.readingHistory));
-          await this._storageSave('bible_readingHistory', value);
-        },
-
-        // Save reading history to IndexedDB
         async saveReadingHistory() {
           const value = JSON.parse(JSON.stringify(this.readingHistory));
           await this._storageSave('bible_readingHistory', value);
