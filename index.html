@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" >
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, interactive-widget=resizes-content" >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" >
   <title>bible-pwa</title>
   <!-- <script src="https://cdn.tailwindcss.com"></script> --> <!-- using tailwindcss/vite now-->
   <link href="/src/tailwind.css" rel="stylesheet">
@@ -36,7 +36,8 @@
     }
 
     /* === Theme: Utility classes using CSS vars === */
-    body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+    html { touch-action: pan-x pan-y; }
+    body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; touch-action: pan-x pan-y; }
     .bg-primary { background-color: var(--bg-primary); }
     .bg-secondary { background-color: var(--bg-secondary); }
     .text-primary { color: var(--text-primary); }
@@ -102,6 +103,12 @@
 
 <body class="min-h-screen" x-data="bibleReader()" :class="{ 'overflow-hidden': isAnyDrawerOpen }">
   <script type="module" src="./src/main.js"></script>
+  <script>
+    // Prevent pinch zoom on Safari (ignores viewport meta)
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
+  </script>
 
   <div id="app" :style="`zoom: ${zoom / 100};`"
     @touchstart="handlePinchStart($event)"
@@ -113,13 +120,10 @@
     <!-- Top Row: Navigation & Controls -->
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
 
-      <!-- Left: Menu placeholder for balance -->
-      <div class="w-10"></div>
-
-      <!-- Center: Book/Chapter & Version -->
+      <!-- Left: Book/Chapter & Version -->
       <div class="flex items-center gap-3">
         <!-- Location -->
-        <button @click="navModal.tab = 'chapters'; navModal.show = true"
+        <button @click="navModal.pendingBook = null; navModal.pendingChapter = null; navModal.tab = 'chapters'; navModal.show = true"
           class="flex items-center gap-1 py-1.5 hover:opacity-70 transition-opacity">
           <span class="text-base font-medium text-primary" x-text="selectedBookName + ' ' + selectedChapter + ' 章'"></span>
           <svg class="w-3.5 h-3.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,19 +146,45 @@
 
       <!-- Right: Actions -->
       <div class="flex items-center gap-1">
-        <button @click="headerSearchOpen = !headerSearchOpen; if (!headerSearchOpen) { searchQuery = ''; searchResults = []; } else { $nextTick(() => $refs.headerSearchInput?.focus()); }"
-          :class="headerSearchOpen ? 'text-accent bg-secondary' : 'text-secondary'"
-          class="p-2 rounded-full hover:bg-secondary transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-        </button>
-        <button @click="settingsModal.show = true" class="p-2 rounded-full hover:bg-secondary text-secondary transition-colors" title="設定">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-        </button>
+        <!-- Visible header actions -->
+        <template x-for="action in headerActions.filter(a => a.visible)" :key="'header-action-' + action.id">
+          <button @click="triggerHeaderAction(action.id)"
+            :class="action.id === 'search' && headerSearchOpen ? 'text-accent bg-secondary' : 'text-secondary'"
+            class="p-2 rounded-full hover:bg-secondary transition-colors"
+            :title="action.name">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-html="getHeaderActionIcon(action.id)"></svg>
+          </button>
+        </template>
+        <!-- Overflow menu (shown when there are hidden actions) -->
+        <div x-show="headerActions.some(a => !a.visible)" class="relative">
+          <button @click="headerOverflowOpen = !headerOverflowOpen"
+            :class="headerOverflowOpen ? 'text-accent bg-secondary' : 'text-secondary'"
+            class="p-2 rounded-full hover:bg-secondary transition-colors" title="更多">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+            </svg>
+          </button>
+          <!-- Dropdown menu -->
+          <div x-show="headerOverflowOpen" x-cloak
+            @click.away="headerOverflowOpen = false"
+            x-transition:enter="transition ease-out duration-150"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-100"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="absolute right-0 top-full mt-1 py-1 min-w-[140px] rounded-lg shadow-lg border border-custom z-50"
+            style="background-color: var(--bg-primary);">
+            <template x-for="action in headerActions.filter(a => !a.visible)" :key="'overflow-action-' + action.id">
+              <button @click="triggerHeaderAction(action.id); headerOverflowOpen = false"
+                class="w-full px-4 py-2 text-left text-primary hover:bg-secondary transition-colors flex items-center gap-3"
+                :style="`font-size: ${fontSize * 0.9}rem;`">
+                <svg class="w-4 h-4 text-secondary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-html="getHeaderActionIcon(action.id)"></svg>
+                <span x-text="action.name"></span>
+              </button>
+            </template>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -162,13 +192,23 @@
     <div class="overflow-hidden transition-all duration-300 ease-in-out"
       :class="headerSearchOpen ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'">
       <div class="max-w-4xl mx-auto px-4 pt-2 pb-3">
-        <div class="relative">
-          <input type="text" x-model="searchQuery" @input="search()" placeholder="搜尋經文..."
-            x-ref="headerSearchInput"
-            class="w-full bg-secondary border border-custom rounded-lg py-2 pl-4 pr-10 text-sm text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-accent/30 shadow-inner">
-          <button x-show="searchQuery" @click="clearSearch()"
-            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-secondary hover:text-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <input type="text" x-model="searchQuery" @input="search()" placeholder="搜尋經文..."
+              x-ref="headerSearchInput"
+              class="w-full bg-secondary border border-custom rounded-lg py-2 pl-4 pr-10 text-sm text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-accent/30 shadow-inner">
+            <button x-show="searchQuery" @click="clearSearch()"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-secondary hover:text-primary">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Close search bar button -->
+          <button @click="headerSearchOpen = false; searchQuery = ''; searchResults = []"
+            class="p-2 text-secondary hover:text-primary hover:bg-secondary rounded-full transition-colors flex-shrink-0"
+            title="關閉搜尋">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -180,7 +220,7 @@
     <div class="h-px w-full opacity-50" style="background: linear-gradient(to right, transparent, var(--border), transparent);"></div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-2 sm:px-4 py-4"
+  <main class="max-w-4xl mx-auto px-1 sm:px-1 py-4"
     @touchstart="handleSwipeStart($event)"
     @touchmove="handleSwipeMove($event)"
     @touchend="handleSwipeEnd()"
@@ -430,7 +470,7 @@
       </div>
       <!-- Verse Reference - scrollable, height for 2 lines -->
       <div x-show="verseModal.verse" class="flex-shrink-0 px-4 py-2 border-b overflow-y-auto scrollbar-thin"
-        :style="`border-color: var(--border); background-color: var(--bg-secondary); max-height: calc(${fontSize * 2}rem * ${lineHeight} + 1rem);`">
+        :style="`border-color: var(--border); background-color: var(--bg-secondary); max-height: calc(${fontSize * 2}rem * ${lineHeight} + 1.25rem);`">
         <p class="text-primary"
           :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};`"
           x-html="verseModal.verse ? renderVerseText(verseModal.verse.text) : ''"></p>
@@ -467,9 +507,13 @@
                 <template x-if="verseModal.editingId === id">
                   <div class="flex-1 flex items-center gap-2 p-2 rounded-lg bg-secondary">
                     <input type="color" x-model="verseModal.editColor" class="w-8 h-8 rounded cursor-pointer border-0">
-                    <input type="text" x-model="verseModal.editName" @keydown.enter="saveHighlightEdit(id)" @keydown.escape="cancelHighlightEdit()"
+                    <span contenteditable="true"
+                      x-text="verseModal.editName"
+                      @input="verseModal.editName = $el.innerText"
+                      @keydown.enter.prevent="saveHighlightEdit(id)"
+                      @keydown.escape="cancelHighlightEdit()"
                       class="flex-1 px-2 py-1 rounded bg-primary border border-custom text-primary text-sm focus:outline-none focus:ring-1 focus:ring-amber-600"
-                      style="font-size: 16px;">
+                      style="font-size: 16px; min-width: 60px;"></span>
                     <button @click="saveHighlightEdit(id)" class="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded" title="儲存">✓</button>
                     <button @click="cancelHighlightEdit()" class="p-1 text-secondary hover:bg-primary rounded" title="取消">✕</button>
                   </div>
@@ -503,22 +547,16 @@
             <span>+</span>
             <span>新增標註</span>
           </button>
-
-          <!-- Remove Highlight Selection -->
-          <button x-show="verseModal.selectedHighlightId" @click="removeHighlightSelection()"
-            class="w-full mt-3 flex items-center justify-center gap-2 p-2 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm">
-            <span>移除標註</span>
-          </button>
         </div>
       </template>
 
-      <!-- Common Footer with Save/Cancel buttons -->
-      <div class="flex-shrink-0 flex justify-end gap-3 p-4 border-t" style="border-color: var(--border);">
+      <!-- Common Footer with Save/Cancel buttons (hidden for highlight type) -->
+      <div x-show="verseModal.type !== 'highlight'" class="flex-shrink-0 flex justify-end gap-3 p-4 border-t" style="border-color: var(--border);">
         <button @click="closeVerseModal()"
           class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
           取消
         </button>
-        <button @click="verseModal.type === 'title' ? saveTitle() : verseModal.type === 'note' ? saveNote() : saveHighlight()"
+        <button @click="verseModal.type === 'title' ? saveTitle() : saveNote()"
           class="px-4 py-2 rounded-lg text-white transition-colors"
           style="background-color: var(--accent);">
           儲存
@@ -573,6 +611,35 @@
           <span class="text-2xl block mb-2">❓</span>
           <p>找不到定義</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Dialog Modal -->
+  <div x-cloak x-show="confirmModal.show"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-[250] bg-black/50 flex items-center justify-center" @click.self="confirmDialogCancel()">
+    <div x-show="confirmModal.show"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+      x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
+      x-transition:leave-end="opacity-0 scale-95"
+      class="rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm"
+      style="background-color: var(--bg-primary);">
+      <p class="text-primary mb-6" :style="`font-size: ${fontSize}rem;`" x-text="confirmModal.message"></p>
+      <div class="flex justify-end gap-3">
+        <button @click="confirmDialogCancel()"
+          class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
+          取消
+        </button>
+        <button @click="confirmDialogConfirm()"
+          class="px-4 py-2 rounded-lg text-white transition-colors"
+          style="background-color: var(--accent);">
+          確定
+        </button>
       </div>
     </div>
   </div>
@@ -805,19 +872,17 @@
               <span x-text="currentFontFamilyName"></span>
             </div>
           </button>
-        </div>
 
-        <!-- Bible Version Section -->
-        <div class="space-y-3 mb-6">
-          <h4 class="font-medium text-primary" :style="`font-size: ${fontSize * 0.95}rem;`">📚 聖經版本</h4>
-
-          <button @click="versionModal.tab = 'select'; versionModal.show = true; settingsModal.show = false"
+          <!-- Header Actions -->
+          <button @click="openHeaderActionsModal()"
             class="w-full flex items-center justify-between p-3 rounded-lg bg-primary border border-custom hover:border-amber-600 transition-colors">
             <div class="flex items-center gap-3">
-              <span>📖</span>
-              <span class="text-primary" x-text="currentVersion.name"></span>
+              <span>🔧</span>
+              <span class="text-primary">工具列按鈕</span>
             </div>
-            <span class="text-secondary" :style="`font-size: ${fontSize * 0.85}rem;`">切換 ▶</span>
+            <div class="text-secondary" :style="`font-size: ${fontSize * 0.85}rem;`">
+              <span x-text="headerActions.filter(a => a.visible).length + '/' + headerActions.length + ' 顯示'"></span>
+            </div>
           </button>
         </div>
 
@@ -905,13 +970,160 @@
     </div>
   </div>
 
+  <!-- Reading History Drawer (Bottom Sheet) -->
+  <div x-cloak x-show="historyModal.show"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-[200] bg-black/40" @click.self="historyModal.show = false">
+    <!-- Drawer Panel -->
+    <div x-show="historyModal.show"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
+      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
+      x-transition:leave-end="translate-y-full"
+      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
+      style="background-color: var(--bg-primary);">
+      <!-- Drag Handle -->
+      <div class="flex-shrink-0 flex justify-center py-2">
+        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
+      </div>
+      <!-- Header -->
+      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
+        <h3 class="font-semibold text-accent flex items-center gap-2"
+          :style="`font-size: ${fontSize * 1.1}rem;`">
+          <span>🕐</span>
+          <span>閱讀紀錄</span>
+        </h3>
+        <button @click="historyModal.show = false"
+          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0">
+          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
+        <!-- Empty State -->
+        <div x-show="readingHistory.length === 0" class="flex flex-col items-center justify-center py-12 text-secondary">
+          <span class="text-4xl mb-4">📚</span>
+          <p>尚無閱讀紀錄</p>
+          <p class="text-sm mt-1 opacity-70">閱讀經文時會自動記錄</p>
+        </div>
+        <!-- History List -->
+        <div x-show="readingHistory.length > 0" class="space-y-2">
+          <template x-for="(item, index) in readingHistory" :key="'history-' + index">
+            <div class="p-3 rounded-lg border border-custom hover:border-accent-light hover:bg-secondary/50 transition-colors cursor-pointer"
+              @click="goToHistoryItem(item)">
+              <div class="font-medium text-primary truncate" x-text="getBookName(item.bookCode) + ' 第 ' + item.chapter + ' 章'"></div>
+              <div class="text-secondary text-sm" :style="`font-size: ${fontSize * 0.8}rem;`" x-text="formatHistoryTime(item.timestamp)"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div x-show="readingHistory.length > 0" class="px-4 py-3 border-t" style="border-color: var(--border);">
+        <p class="text-secondary text-center" :style="`font-size: ${fontSize * 0.85}rem;`">共 <span x-text="readingHistory.length"></span> 筆紀錄（最多保留 50 筆）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header Actions Editor Modal (Bottom Sheet) -->
+  <div x-cloak x-show="headerActionsModal.show"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-[200] bg-black/40" @click.self="headerActionsModal.show = false">
+    <!-- Drawer Panel -->
+    <div x-show="headerActionsModal.show"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
+      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
+      x-transition:leave-end="translate-y-full"
+      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
+      style="background-color: var(--bg-primary);">
+      <!-- Drag Handle -->
+      <div class="flex-shrink-0 flex justify-center py-2">
+        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
+      </div>
+      <!-- Header -->
+      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
+        <h3 class="font-semibold text-accent flex items-center gap-2"
+          :style="`font-size: ${fontSize * 1.1}rem;`">
+          <span>🔧</span>
+          <span>工具列按鈕</span>
+        </h3>
+        <button @click="headerActionsModal.show = false"
+          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0">
+          <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
+        <p class="text-secondary mb-4" :style="`font-size: ${fontSize * 0.85}rem;`">拖曳調整順序，點擊切換顯示/隱藏。隱藏的按鈕會顯示在「⋮」選單中。</p>
+        <!-- Actions List -->
+        <div class="space-y-2">
+          <template x-for="action in headerActions" :key="'edit-action-' + action.id">
+            <div
+              class="flex items-center gap-3 p-3 rounded-lg border transition-all cursor-move"
+              :class="headerActionsModal.draggedId === action.id ? 'border-accent bg-accent/10 scale-[1.02]' : (action.visible ? 'border-accent-light bg-secondary/30' : 'border-custom bg-primary')"
+              draggable="true"
+              @dragstart="startHeaderActionDrag(action.id)"
+              @dragover="handleHeaderActionDragOver($event, action.id)"
+              @dragend="endHeaderActionDrag()"
+              @touchstart="startHeaderActionDrag(action.id)"
+              @touchend="endHeaderActionDrag()">
+              <!-- Drag Handle -->
+              <div class="text-secondary cursor-grab active:cursor-grabbing">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                </svg>
+              </div>
+              <!-- Icon -->
+              <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                :class="action.visible ? 'bg-accent/20 text-accent' : 'bg-secondary text-secondary'">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-html="getHeaderActionIcon(action.id)"></svg>
+              </div>
+              <!-- Name -->
+              <div class="flex-1">
+                <span class="font-medium" :class="action.visible ? 'text-primary' : 'text-secondary'" x-text="action.name"></span>
+              </div>
+              <!-- Visibility Toggle -->
+              <button @click="toggleHeaderActionVisibility(action.id)"
+                class="p-2 rounded-lg transition-colors"
+                :class="action.visible ? 'text-accent hover:bg-accent/20' : 'text-secondary hover:bg-secondary'">
+                <svg x-show="action.visible" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg x-show="!action.visible" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                </svg>
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="px-4 py-3 border-t" style="border-color: var(--border);">
+        <p class="text-secondary text-center" :style="`font-size: ${fontSize * 0.85}rem;`">
+          <span x-text="headerActions.filter(a => a.visible).length"></span> 個按鈕顯示於工具列
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation Drawer (Book & Chapter Selection) -->
   <div x-cloak x-show="navModal.show"
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="navModal.show = false">
+    class="fixed inset-0 z-[200] bg-black/40" @click.self="applyNavSelection()">
     <!-- Drawer Panel -->
     <div x-show="navModal.show"
       x-transition:enter="transition ease-out duration-300"
@@ -939,10 +1151,10 @@
             class="flex-1 py-2 flex items-center justify-center gap-2 font-medium transition-colors border-b-2"
             :style="`font-size: ${fontSize}rem; ` + (navModal.tab === 'chapters' ? 'border-color: var(--accent)' : 'border-color: transparent')">
             <span>📖</span>
-            <span x-text="selectedBookName"></span>
+            <span x-text="getBookName(navModal.pendingBook || selectedBook)"></span>
           </button>
         </div>
-        <button @click="navModal.show = false"
+        <button @click="applyNavSelection()"
           class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0 ml-2">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -985,11 +1197,11 @@
           <div class="flex-1 overflow-y-auto scrollbar-thin -mx-1.5 px-1.5">
             <div class="grid grid-cols-2 gap-2">
               <template x-for="bookCode in getFilteredBooks()" :key="'nav-book-' + bookCode">
-                <button @click="selectedBook = bookCode; onBookChange(); navModal.tab = 'chapters'"
+                <button @click="navModal.pendingBook = bookCode; navModal.pendingChapter = getFirstChapterForBook(bookCode); navModal.tab = 'chapters'"
                   class="flex items-center justify-between p-3 rounded-lg bg-primary border border-custom hover:bg-secondary transition-colors text-left">
                   <span class="font-medium text-primary" :style="`font-size: ${fontSize}rem;`" x-text="getBookName(bookCode)"></span>
                   <div class="flex items-center gap-2">
-                    <span x-show="selectedBook === bookCode" class="w-2 h-2 rounded-full bg-accent"></span>
+                    <span x-show="(navModal.pendingBook || selectedBook) === bookCode" class="w-2 h-2 rounded-full bg-accent"></span>
                     <span class="text-secondary" :style="`font-size: ${fontSize * 0.85}rem;`">→</span>
                   </div>
                 </button>
@@ -1002,20 +1214,24 @@
         <div x-show="navModal.tab === 'chapters'" class="flex-1 overflow-hidden flex flex-col">
           <!-- Current Selection -->
           <div class="mb-3">
-            <p class="text-accent font-medium mb-1" :style="`font-size: ${fontSize * 0.85}rem;`">📖 目前選擇</p>
+            <p class="text-accent font-medium mb-1" :style="`font-size: ${fontSize * 0.85}rem;`">📖 選擇章節</p>
             <p class="font-bold text-primary" :style="`font-size: ${fontSize * 1.15}rem;`">
-              <span x-text="selectedBookName"></span>
-              <span class="text-secondary font-normal"> / </span>
-              <span>第 <span x-text="selectedChapter"></span> 章</span>
+              <span x-text="getBookName(navModal.pendingBook || selectedBook)"></span>
+              <template x-if="navModal.pendingChapter || (!navModal.pendingBook && selectedChapter)">
+                <span>
+                  <span class="text-secondary font-normal"> / </span>
+                  <span>第 <span x-text="navModal.pendingChapter || selectedChapter"></span> 章</span>
+                </span>
+              </template>
             </p>
           </div>
 
           <!-- Chapter Grid -->
           <div x-ref="chapterGrid" class="flex-1 overflow-y-auto scrollbar-thin -mx-1.5 px-1.5">
             <div class="grid grid-cols-5 gap-2">
-              <template x-for="chapter in chapters" :key="'nav-ch-' + chapter">
-                <button @click="selectedChapter = chapter; loadVerses(); navModal.show = false; window.scrollTo({ top: 0, behavior: 'smooth' })"
-                  :class="selectedChapter === chapter ? 'bg-accent text-white' : 'bg-primary hover:bg-secondary text-primary border border-custom'"
+              <template x-for="chapter in getChaptersForPendingBook()" :key="'nav-ch-' + chapter">
+                <button @click="navModal.pendingChapter = chapter; applyNavSelection()"
+                  :class="getNavChapterClass(chapter)"
                   class="aspect-square rounded-lg flex items-center justify-center font-medium transition-all"
                   :style="`font-size: ${fontSize * 1.1}rem;`"
                   x-text="chapter"></button>
@@ -1108,8 +1324,8 @@
                     <span :style="`font-size: ${fontSize * 0.85}rem;`">🗑️</span>
                   </button>
                   <!-- Select/Download button -->
-                  <button @click="selectVersion(version.id)"
-                    :disabled="versionModal.downloading === version.id"
+                  <button @click="isVersionCached(version.id) ? selectVersion(version.id) : downloadVersionOnly(version.id)"
+                    :disabled="versionModal.downloading === version.id || selectedVersionId === version.id"
                     class="px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                     :class="selectedVersionId === version.id ? 'bg-secondary text-secondary cursor-default' : 'text-white'"
                     :style="`font-size: ${fontSize * 0.85}rem; ` + (selectedVersionId !== version.id ? 'background-color: var(--accent);' : '')">
@@ -1327,7 +1543,7 @@
       { id: 'en_BBE', file: 'en_BBE.txt', name: 'Bible in Basic English', lang: 'English', size: '4.4 MB' },
       { id: 'en_YLT', file: 'en_YLT.txt', name: 'Young\'s Literal', lang: 'English', size: '4.4 MB' },
       { id: 'el_Septuaginta', file: 'el_Septuaginta.txt', name: 'Septuaginta', lang: 'Ελληνικά', size: '5.4 MB' },
-      { id: 'iw_ModernHebrew', file: 'iw_ModernHebrew.txt', name: 'Modern Hebrew', lang: 'עברית', size: '4.0 MB' }
+      { id: 'iw_ModernHebrew', file: 'iw_ModernHebrew.txt', name: 'Modern Hebrew', lang: 'ע��רית', size: '4.0 MB' }
     ];
 
     function bibleReader() {
@@ -1372,7 +1588,9 @@
           show: false,
           tab: 'chapters',  // 'books' or 'chapters'
           testament: 'old', // 'old' or 'new'
-          category: 'pentateuch'  // category filter
+          category: 'pentateuch',  // category filter
+          pendingBook: null,    // temporarily selected book
+          pendingChapter: null  // temporarily selected chapter
         },
         verseActions: {
           show: false,
@@ -1405,11 +1623,32 @@
           definition: '',
           loading: false
         },
+        confirmModal: {
+          show: false,
+          message: '',
+          onConfirm: null
+        },
+        historyModal: {
+          show: false
+        },
+        readingHistory: [],  // Array of { bookCode, chapter, timestamp }
+        _skipHistoryRecording: true,  // Skip history during initial load
         snDictTexts: {},  // Cache for raw dictionary text by version ID
         snDictLoading: false,
         hasFileSystemAccess: false,
         fileHandle: null,
         autoSync: false,
+        // Header actions configuration
+        headerActions: [
+          { id: 'search', name: '搜尋', icon: 'search', visible: true },
+          { id: 'history', name: '閱讀紀錄', icon: 'clock', visible: true },
+          { id: 'settings', name: '設定', icon: 'settings', visible: true }
+        ],
+        headerActionsModal: {
+          show: false,
+          draggedId: null
+        },
+        headerOverflowOpen: false,
         // Reading preferences
         fontSize: 1.125,   // in rem (default ~18px at 16px base)
         lineHeight: 1.8,   // multiplier
@@ -1566,6 +1805,12 @@
 
             // Load compare version order
             await this.loadCompareVersionOrder();
+
+            // Load reading history (stored separately, not in user data zip)
+            await this.loadReadingHistory();
+
+            // Load header actions configuration
+            await this.loadHeaderActions();
           } catch (e) {
             console.warn('Failed to load from IndexedDB:', e);
           }
@@ -1719,9 +1964,11 @@
             touch2.clientY - touch1.clientY
           );
 
-          // Calculate zoom based on pinch scale
+          // Calculate zoom based on pinch scale with dampening for less sensitivity
           const scale = distance / this.pinchState.initialDistance;
-          const newZoom = Math.round(this.pinchState.initialZoom * scale);
+          const dampening = 0.4; // Lower = less sensitive (0.4 means 40% of the gesture effect)
+          const dampenedScale = 1 + (scale - 1) * dampening;
+          const newZoom = Math.round(this.pinchState.initialZoom * dampenedScale);
 
           // Clamp to valid range
           this.zoom = Math.max(50, Math.min(150, newZoom));
@@ -1954,7 +2201,9 @@
                  this.versionModal.show ||
                  this.navModal.show ||
                  this.verseModal.show ||
-                 this.snModal.show;
+                 this.snModal.show ||
+                 this.historyModal.show ||
+                 this.headerActionsModal.show;
         },
 
         // Check if a version is cached
@@ -2026,7 +2275,17 @@
           }
         },
 
-        // Select and load a version
+        // Download a version without switching to it
+        async downloadVersionOnly(versionId) {
+          const version = this.availableVersions.find(v => v.id === versionId);
+          if (!version) return;
+
+          if (!this.isVersionCached(versionId)) {
+            await this.downloadVersion(version);
+          }
+        },
+
+        // Select and load a version (without closing drawer)
         async selectVersion(versionId) {
           const version = this.availableVersions.find(v => v.id === versionId);
           if (!version) return;
@@ -2039,7 +2298,6 @@
 
           this.selectedVersionId = versionId;
           await this.saveSelectedVersion();
-          this.versionModal.show = false;
 
           // Reload verses
           await this.parseVerses();
@@ -2084,7 +2342,7 @@
               rawText = await response.text();
 
               // Cache the data in IndexedDB
-              this.loadingMessage = '正在儲存���取...';
+              this.loadingMessage = '正在儲存快取...';
               this.loadingSubMessage = '下次載入將更快';
               try {
                 await idbKeyval.set(`bible_version_${this.selectedVersionId}`, rawText);
@@ -2217,6 +2475,9 @@
               if (needsReload) {
                 this.loadVerses();
               }
+
+              // Enable history recording after initial load is complete
+              this._skipHistoryRecording = false;
             });
           }
         },
@@ -2231,6 +2492,68 @@
           }
         },
 
+        // Get chapters for the pending book in the nav modal
+        getChaptersForPendingBook() {
+          const book = this.navModal.pendingBook || this.selectedBook;
+          if (this.bibleData[book]) {
+            return Object.keys(this.bibleData[book])
+              .map(Number)
+              .sort((a, b) => a - b);
+          }
+          return this.chapters;
+        },
+
+        // Get the first chapter number for a given book
+        getFirstChapterForBook(bookCode) {
+          if (this.bibleData[bookCode]) {
+            const chapters = Object.keys(this.bibleData[bookCode])
+              .map(Number)
+              .sort((a, b) => a - b);
+            return chapters[0] || 1;
+          }
+          return 1;
+        },
+
+        // Get CSS class for chapter button in nav modal
+        getNavChapterClass(chapter) {
+          const isSelected = this.navModal.pendingChapter === chapter ||
+            // Only highlight current chapter if we're on the same book and no pending selection
+            (!this.navModal.pendingChapter && !this.navModal.pendingBook && this.selectedChapter === chapter);
+          return isSelected
+            ? 'bg-accent text-white'
+            : 'bg-primary hover:bg-secondary text-primary border border-custom';
+        },
+
+        // Apply pending selection from nav modal and close
+        applyNavSelection() {
+          const newBook = this.navModal.pendingBook || this.selectedBook;
+          const newChapter = this.navModal.pendingChapter || this.selectedChapter;
+
+          // Check if selection changed
+          const bookChanged = newBook !== this.selectedBook;
+          const chapterChanged = newChapter !== this.selectedChapter;
+
+          if (bookChanged) {
+            this.selectedBook = newBook;
+            this.updateChapters();
+          }
+
+          if (bookChanged || chapterChanged) {
+            // Validate chapter exists for the book
+            if (this.chapters.includes(newChapter)) {
+              this.selectedChapter = newChapter;
+            } else {
+              this.selectedChapter = this.chapters[0] || 1;
+            }
+            this.loadVerses();
+          }
+
+          // Reset pending values and close
+          this.navModal.pendingBook = null;
+          this.navModal.pendingChapter = null;
+          this.navModal.show = false;
+        },
+
         onBookChange() {
           this.updateChapters();
           this.selectedChapter = this.chapters[0] || 1;
@@ -2241,6 +2564,8 @@
         loadVerses() {
           if (this.bibleData[this.selectedBook] && this.bibleData[this.selectedBook][this.selectedChapter]) {
             this.currentVerses = this.bibleData[this.selectedBook][this.selectedChapter];
+            // Record reading history
+            this.addToReadingHistory(this.selectedBook, this.selectedChapter);
           } else {
             this.currentVerses = [];
           }
@@ -2337,6 +2662,107 @@
         toggleDarkMode() {
           this.isDark = !this.isDark;
           document.documentElement.classList.toggle('dark', this.isDark);
+        },
+
+        // Header action helpers
+        getHeaderActionIcon(actionId) {
+          const icons = {
+            search: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>',
+            history: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+            settings: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>'
+          };
+          return icons[actionId] || '';
+        },
+
+        triggerHeaderAction(actionId) {
+          switch (actionId) {
+            case 'search':
+              this.headerSearchOpen = !this.headerSearchOpen;
+              if (!this.headerSearchOpen) {
+                this.searchQuery = '';
+                this.searchResults = [];
+              } else {
+                this.$nextTick(() => this.$refs.headerSearchInput?.focus());
+              }
+              break;
+            case 'history':
+              this.historyModal.show = true;
+              break;
+            case 'settings':
+              this.settingsModal.show = true;
+              break;
+          }
+        },
+
+        // Header actions modal methods
+        openHeaderActionsModal() {
+          this.headerActionsModal.show = true;
+        },
+
+        toggleHeaderActionVisibility(actionId) {
+          const action = this.headerActions.find(a => a.id === actionId);
+          if (action) {
+            action.visible = !action.visible;
+            this.saveHeaderActions();
+          }
+        },
+
+        // Drag and drop for header actions reordering
+        startHeaderActionDrag(actionId) {
+          this.headerActionsModal.draggedId = actionId;
+        },
+
+        handleHeaderActionDragOver(event, targetId) {
+          event.preventDefault();
+          if (!this.headerActionsModal.draggedId || this.headerActionsModal.draggedId === targetId) return;
+
+          const draggedIdx = this.headerActions.findIndex(a => a.id === this.headerActionsModal.draggedId);
+          const targetIdx = this.headerActions.findIndex(a => a.id === targetId);
+
+          if (draggedIdx !== -1 && targetIdx !== -1) {
+            const [dragged] = this.headerActions.splice(draggedIdx, 1);
+            this.headerActions.splice(targetIdx, 0, dragged);
+          }
+        },
+
+        endHeaderActionDrag() {
+          if (this.headerActionsModal.draggedId) {
+            this.headerActionsModal.draggedId = null;
+            this.saveHeaderActions();
+          }
+        },
+
+        async saveHeaderActions() {
+          try {
+            await idbKeyval.set('bible_headerActions', JSON.parse(JSON.stringify(this.headerActions)));
+          } catch (e) {
+            console.warn('Failed to save header actions:', e);
+          }
+        },
+
+        async loadHeaderActions() {
+          try {
+            const saved = await idbKeyval.get('bible_headerActions');
+            if (saved && Array.isArray(saved)) {
+              // Merge saved config with defaults (in case new actions are added)
+              const defaultActions = [
+                { id: 'search', name: '搜尋', icon: 'search', visible: true },
+                { id: 'history', name: '閱讀紀錄', icon: 'clock', visible: true },
+                { id: 'settings', name: '設定', icon: 'settings', visible: true }
+              ];
+              // Keep order from saved, update with any new defaults
+              const savedIds = saved.map(a => a.id);
+              const merged = saved.filter(a => defaultActions.some(d => d.id === a.id));
+              defaultActions.forEach(d => {
+                if (!savedIds.includes(d.id)) {
+                  merged.push(d);
+                }
+              });
+              this.headerActions = merged;
+            }
+          } catch (e) {
+            console.warn('Failed to load header actions:', e);
+          }
         },
 
         // Verse actions widget
@@ -2582,7 +3008,22 @@
         },
 
         selectHighlight(highlightId) {
-          this.verseModal.selectedHighlightId = highlightId;
+          // Toggle: if clicking the same highlight, deselect it (remove highlight)
+          if (this.verseModal.selectedHighlightId === highlightId) {
+            this.verseModal.selectedHighlightId = null;
+          } else {
+            this.verseModal.selectedHighlightId = highlightId;
+          }
+          // Immediately save (but don't close the modal)
+          const ref = this.verseModal.verse?.ref;
+          if (!ref) return;
+          const selectedId = this.verseModal.selectedHighlightId;
+          if (selectedId) {
+            this.verseHighlights[ref] = selectedId;
+          } else {
+            delete this.verseHighlights[ref];
+          }
+          this.saveHighlights();
         },
 
         saveHighlight() {
@@ -2643,16 +3084,47 @@
         },
 
         deleteHighlight(id) {
-          // Remove from defs
-          delete this.highlightDefs[id];
-          // Remove from all verses using this highlight
-          for (const ref in this.verseHighlights) {
-            if (this.verseHighlights[ref] === id) {
-              delete this.verseHighlights[ref];
+          // Count how many verses use this highlight
+          const affectedCount = Object.values(this.verseHighlights).filter(hId => hId === id).length;
+          const highlightName = this.highlightDefs[id]?.name || '';
+
+          // Show confirmation with count
+          this.showConfirmDialog(
+            affectedCount > 0
+              ? `確定要刪除「${highlightName}」嗎？這將移除 ${affectedCount} 個經文的標註。`
+              : `確定要刪除「${highlightName}」嗎？`,
+            () => {
+              // Remove from defs
+              delete this.highlightDefs[id];
+              // Remove from all verses using this highlight
+              for (const ref in this.verseHighlights) {
+                if (this.verseHighlights[ref] === id) {
+                  delete this.verseHighlights[ref];
+                }
+              }
+              this.saveHighlightDefs();
+              this.saveHighlights();
             }
+          );
+        },
+
+        showConfirmDialog(message, onConfirm) {
+          this.confirmModal.message = message;
+          this.confirmModal.onConfirm = onConfirm;
+          this.confirmModal.show = true;
+        },
+
+        confirmDialogConfirm() {
+          if (this.confirmModal.onConfirm) {
+            this.confirmModal.onConfirm();
           }
-          this.saveHighlightDefs();
-          this.saveHighlights();
+          this.confirmModal.show = false;
+          this.confirmModal.onConfirm = null;
+        },
+
+        confirmDialogCancel() {
+          this.confirmModal.show = false;
+          this.confirmModal.onConfirm = null;
         },
 
         async saveHighlights() {
@@ -3301,6 +3773,112 @@
               // Removing it would cause the verse-item opacity:0 to kick in again
             }
           }, 100);
+        },
+
+        // === Reading History Methods ===
+        // Load reading history from IndexedDB
+        async loadReadingHistory() {
+          try {
+            const savedHistory = await idbKeyval.get('bible_readingHistory');
+            if (savedHistory && Array.isArray(savedHistory)) {
+              this.readingHistory = savedHistory;
+            }
+          } catch (e) {
+            console.warn('Failed to load reading history:', e);
+          }
+        },
+
+        // Save reading history to IndexedDB
+        async saveReadingHistory() {
+          try {
+            await idbKeyval.set('bible_readingHistory', JSON.parse(JSON.stringify(this.readingHistory)));
+          } catch (e) {
+            console.warn('Failed to save reading history:', e);
+          }
+        },
+
+        // Add a new entry to reading history
+        addToReadingHistory(bookCode, chapter) {
+          if (!bookCode || !chapter) return;
+
+          // Skip recording during initial load
+          if (this._skipHistoryRecording) return;
+
+          // Check if this book+chapter is already the most recent entry
+          if (this.readingHistory.length > 0) {
+            const mostRecent = this.readingHistory[0];
+            if (mostRecent.bookCode === bookCode && mostRecent.chapter === chapter) {
+              // Update timestamp of existing most recent entry
+              mostRecent.timestamp = Date.now();
+              this.saveReadingHistory();
+              return;
+            }
+          }
+
+          // Remove any existing entry for the same book+chapter
+          this.readingHistory = this.readingHistory.filter(
+            item => !(item.bookCode === bookCode && item.chapter === chapter)
+          );
+
+          // Add new entry at the beginning
+          this.readingHistory.unshift({
+            bookCode,
+            chapter,
+            timestamp: Date.now()
+          });
+
+          // Limit to 50 entries
+          if (this.readingHistory.length > 50) {
+            this.readingHistory = this.readingHistory.slice(0, 50);
+          }
+
+          this.saveReadingHistory();
+        },
+
+        // Navigate to a history item
+        goToHistoryItem(item) {
+          this.selectedBook = item.bookCode;
+          this.updateChapters();
+          if (this.chapters.includes(item.chapter)) {
+            this.selectedChapter = item.chapter;
+          } else {
+            this.selectedChapter = this.chapters[0] || 1;
+          }
+          this.loadVerses();
+          this.historyModal.show = false;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        // Remove a single history item
+        removeHistoryItem(index) {
+          this.readingHistory.splice(index, 1);
+          this.saveReadingHistory();
+        },
+
+        // Clear all reading history
+        clearReadingHistory() {
+          this.readingHistory = [];
+          this.saveReadingHistory();
+        },
+
+        // Format timestamp for display
+        formatHistoryTime(timestamp) {
+          if (!timestamp) return '';
+
+          const now = Date.now();
+          const diff = now - timestamp;
+          const minutes = Math.floor(diff / 60000);
+          const hours = Math.floor(diff / 3600000);
+          const days = Math.floor(diff / 86400000);
+
+          if (minutes < 1) return '剛才';
+          if (minutes < 60) return `${minutes} 分鐘前`;
+          if (hours < 24) return `${hours} 小時前`;
+          if (days < 7) return `${days} 天前`;
+
+          // For older entries, show date
+          const date = new Date(timestamp);
+          return `${date.getMonth() + 1}/${date.getDate()}`;
         }
       };
     }
