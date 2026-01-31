@@ -239,7 +239,7 @@
       <!-- Left: Book/Chapter & Version -->
       <div class="flex items-center gap-3">
         <!-- Location -->
-        <button @click="navModal.pendingBook = null; navModal.pendingChapter = null; navModal.tab = 'chapters'; navModal.show = true"
+        <button @click="navModal.pendingBook = null; navModal.pendingChapter = null; navModal.tab = 'chapters'; navModal.show = true; $refs.navDialog.showModal()"
           class="flex items-center gap-1 py-1.5 hover:opacity-70 transition-opacity">
           <span class="text-base font-medium text-primary" x-text="selectedBookName + ' ' + selectedChapter + ' 章'"></span>
           <svg class="w-3.5 h-3.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@
         <div class="w-px h-4" style="background-color: var(--border);"></div>
 
         <!-- Version -->
-        <button @click="versionModal.tab = 'select'; versionModal.show = true"
+        <button @click="versionModal.tab = 'select'; versionModal.show = true; $refs.versionDialog.showModal()"
           class="flex items-center gap-1 py-1.5 hover:opacity-70 transition-opacity">
           <span class="text-base text-secondary" x-text="currentVersion.name"></span>
           <svg class="w-3.5 h-3.5 text-secondary opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,35 +550,20 @@
     </div>
   </div>
 
-  <!-- Unified Verse Modal (Title/Note/Highlight) -->
-  <div x-cloak x-show="verseModal.show"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="closeVerseModal()">
-    <!-- Drawer Panel -->
-    <div x-show="verseModal.show"
-      x-transition:enter="transition ease-out duration-300"
-      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
-      x-transition:leave-end="translate-y-full"
-      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
-      style="background-color: var(--bg-primary);">
-      <!-- Drag Handle -->
-      <div class="flex-shrink-0 flex justify-center py-2">
-        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
-      </div>
-      <!-- Header -->
-      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
-        <h3 class="font-semibold text-accent flex items-center gap-1"
-          :style="`font-size: ${fontSize}rem;`">
+  <!-- Unified Verse Modal (Title/Note/Highlight) - Uses reusable drawer pattern -->
+  <dialog x-ref="verseDialog"
+    @close="verseModal.show = false"
+    @click="if ($event.target === $el) $el.close()"
+    class="drawer-dialog">
+    <div class="drawer-panel-container">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <h3 class="drawer-title" :style="`font-size: ${fontSize * 1.1}rem;`">
           <span x-text="verseModalConfig.icon"></span>
           <span x-text="verseModalConfig.label"></span>
           <span class="text-secondary font-normal" x-text="verseModal.verse ? ' - ' + formatRef(verseModal.verse.ref) : ''"></span>
         </h3>
-        <button @click="closeVerseModal()"
-          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0">
+        <button @click="$refs.verseDialog.close()" class="drawer-close-btn">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -594,27 +579,26 @@
 
       <!-- Title Content -->
       <template x-if="verseModal.type === 'title'">
-        <div class="flex-1 flex flex-col p-4 pb-0 overflow-hidden min-h-0">
+        <div class="drawer-content scrollbar-thin pt-4" :style="`font-size: ${fontSize}rem;`">
           <input type="text" x-model="verseModal.title" x-ref="titleInput" @keydown.enter="saveTitle()"
-            @keydown.escape="closeVerseModal()" placeholder="輸入標題..."
+            @keydown.escape="$refs.verseDialog.close()" placeholder="輸入標題..."
             :style="`font-size: ${fontSize}rem; font-family: ${currentFontFamily};`"
-            class="flex-shrink-0 w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600">
-          <div class="flex-1 min-h-0"></div>
+            class="w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600">
         </div>
       </template>
 
       <!-- Note Content -->
       <template x-if="verseModal.type === 'note'">
-        <div class="flex-1 flex flex-col p-4 pb-0 overflow-hidden min-h-0">
-          <textarea x-model="verseModal.note" x-ref="noteInput" @keydown.escape="closeVerseModal()" placeholder="輸入筆記..."
+        <div class="drawer-content scrollbar-thin pt-4" :style="`font-size: ${fontSize}rem;`">
+          <textarea x-model="verseModal.note" x-ref="noteInput" @keydown.escape="$refs.verseDialog.close()" placeholder="輸入筆記..."
             :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};`"
-            class="flex-1 w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none min-h-[80px]"></textarea>
+            class="w-full px-4 py-3 rounded-lg bg-secondary border border-custom text-primary placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none min-h-[80px]"></textarea>
         </div>
       </template>
 
       <!-- Highlight Content -->
       <template x-if="verseModal.type === 'highlight'">
-        <div class="flex-1 overflow-y-auto p-4 pb-0 scrollbar-thin">
+        <div class="drawer-content scrollbar-thin pt-4" :style="`font-size: ${fontSize}rem;`">
           <!-- Highlight List -->
           <div class="space-y-2 mb-4">
             <template x-for="(def, id) in highlightDefs" :key="id">
@@ -667,55 +651,41 @@
       </template>
 
       <!-- Common Footer with Save/Cancel buttons (hidden for highlight type) -->
-      <div x-show="verseModal.type !== 'highlight'" class="flex-shrink-0 flex justify-end gap-3 p-4 border-t" style="border-color: var(--border);">
-        <button @click="closeVerseModal()"
-          class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
-          取消
-        </button>
-        <button @click="verseModal.type === 'title' ? saveTitle() : saveNote()"
-          class="px-4 py-2 rounded-lg text-white transition-colors"
-          style="background-color: var(--accent);">
-          儲存
-        </button>
+      <div x-show="verseModal.type !== 'highlight'" class="drawer-footer">
+        <div class="flex justify-end gap-3">
+          <button @click="$refs.verseDialog.close()"
+            class="px-4 py-2 rounded-lg text-secondary hover:bg-secondary transition-colors">
+            取消
+          </button>
+          <button @click="verseModal.type === 'title' ? saveTitle() : saveNote()"
+            class="px-4 py-2 rounded-lg text-white transition-colors"
+            style="background-color: var(--accent);">
+            儲存
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
-  <!-- Strong's Number Definition Drawer (Bottom Sheet) -->
-  <div x-cloak x-show="snModal.show"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="snModal.show = false">
-    <!-- Drawer Panel -->
-    <div x-show="snModal.show"
-      x-transition:enter="transition ease-out duration-300"
-      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
-      x-transition:leave-end="translate-y-full"
-      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
-      style="background-color: var(--bg-primary);">
-      <!-- Drag Handle -->
-      <div class="flex-shrink-0 flex justify-center py-2">
-        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
-      </div>
-      <!-- Header -->
-      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
-        <h3 class="font-semibold text-accent flex items-center gap-2"
-          :style="`font-size: ${fontSize}rem;`">
+  <!-- Strong's Number Definition Drawer (Bottom Sheet) - Uses reusable drawer pattern -->
+  <dialog x-ref="snDialog"
+    @close="snModal.show = false"
+    @click="if ($event.target === $el) $el.close()"
+    class="drawer-dialog">
+    <div class="drawer-panel-container">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <h3 class="drawer-title" :style="`font-size: ${fontSize * 1.1}rem;`">
           <span>📖</span>
           <span x-text="snModal.code"></span>
         </h3>
-        <button @click="snModal.show = false"
-          class="p-2 hover:bg-secondary rounded-full transition-colors">
+        <button @click="$refs.snDialog.close()" class="drawer-close-btn">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4"
+      <div class="drawer-content scrollbar-thin"
         :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};`">
         <div x-show="snModal.loading" class="flex items-center justify-center py-8">
           <span class="animate-pulse text-2xl">⏳</span>
@@ -729,7 +699,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <!-- Confirm Dialog Modal -->
   <div x-cloak x-show="confirmModal.show"
@@ -1148,41 +1118,25 @@
     </div>
   </dialog>
 
-  <!-- Header Actions Editor Modal (Bottom Sheet) -->
-  <div x-cloak x-show="headerActionsModal.show"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="headerActionsModal.show = false">
-    <!-- Drawer Panel -->
-    <div x-show="headerActionsModal.show"
-      x-transition:enter="transition ease-out duration-300"
-      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
-      x-transition:leave-end="translate-y-full"
-      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
-      style="background-color: var(--bg-primary);">
-      <!-- Drag Handle -->
-      <div class="flex-shrink-0 flex justify-center py-2">
-        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
-      </div>
-      <!-- Header -->
-      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
-        <h3 class="font-semibold text-accent flex items-center gap-2"
-          :style="`font-size: ${fontSize * 1.1}rem;`">
+  <!-- Header Actions Editor Modal (Bottom Sheet) - Uses reusable drawer pattern -->
+  <dialog x-ref="headerActionsDialog"
+    @close="headerActionsModal.show = false"
+    @click="if ($event.target === $el) $el.close()"
+    class="drawer-dialog">
+    <div class="drawer-panel-container">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <h3 class="drawer-title" :style="`font-size: ${fontSize * 1.1}rem;`">
           <span>🔧</span>
           <span>工具列按鈕</span>
         </h3>
-        <button @click="headerActionsModal.show = false"
-          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0">
+        <button @click="$refs.headerActionsDialog.close()" class="drawer-close-btn">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
+      <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
         <p class="text-secondary mb-4" :style="`font-size: ${fontSize * 0.85}rem;`">拖曳調整順序，點擊切換顯示/隱藏。隱藏的按鈕會顯示在「⋮」選單中。</p>
         <!-- Actions List -->
         <div class="space-y-2">
@@ -1227,35 +1181,22 @@
           </template>
         </div>
       </div>
-      <!-- Footer -->
-      <div class="px-4 py-3 border-t" style="border-color: var(--border);">
+      <div class="drawer-footer">
         <p class="text-secondary text-center" :style="`font-size: ${fontSize * 0.85}rem;`">
           <span x-text="headerActions.filter(a => a.visible).length"></span> 個按鈕顯示於工具列
         </p>
       </div>
     </div>
-  </div>
+  </dialog>
 
-  <!-- Navigation Drawer (Book & Chapter Selection) -->
-  <div x-cloak x-show="navModal.show"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="applyNavSelection()">
-    <!-- Drawer Panel -->
-    <div x-show="navModal.show"
-      x-transition:enter="transition ease-out duration-300"
-      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
-      x-transition:leave-end="translate-y-full"
-      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl drawer-panel shadow-2xl flex flex-col rounded-t-2xl"
-      style="background-color: var(--bg-primary);">
-      <!-- Drag Handle -->
-      <div class="flex justify-center py-2">
-        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
-      </div>
-      <!-- Header with Tabs -->
+  <!-- Navigation Drawer (Book & Chapter Selection) - Uses reusable drawer pattern -->
+  <dialog x-ref="navDialog"
+    @close="navModal.show = false"
+    @click="if ($event.target === $el) applyNavSelection()"
+    class="drawer-dialog">
+    <div class="drawer-panel-container">
+      <div class="drawer-handle"></div>
+      <!-- Custom Header with Tabs (instead of standard drawer-header) -->
       <div class="flex items-center justify-between px-4 pb-2 border-b" style="border-color: var(--border);">
         <div class="flex gap-1 flex-1">
           <button @click="navModal.tab = 'books'"
@@ -1273,8 +1214,7 @@
             <span x-text="getBookName(navModal.pendingBook || selectedBook)"></span>
           </button>
         </div>
-        <button @click="applyNavSelection()"
-          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0 ml-2">
+        <button @click="applyNavSelection()" class="drawer-close-btn ml-2">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -1360,42 +1300,27 @@
         </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
-  <!-- Version Selector Drawer (Bottom Sheet) -->
-  <div x-cloak x-show="versionModal.show"
-    x-transition:enter="transition ease-out duration-300"
-    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-[200] bg-black/40" @click.self="versionModal.show = false">
-    <!-- Drawer Panel -->
-    <div x-show="versionModal.show"
-      x-transition:enter="transition ease-out duration-300"
-      x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-      x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0"
-      x-transition:leave-end="translate-y-full"
-      class="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-2xl shadow-2xl flex flex-col rounded-t-2xl drawer-panel"
-      style="background-color: var(--bg-primary);">
-      <!-- Drag Handle -->
-      <div class="flex-shrink-0 flex justify-center py-2">
-        <div class="w-10 h-1 rounded-full" style="background-color: var(--border);"></div>
-      </div>
-      <!-- Header -->
-      <div class="flex-shrink-0 flex items-center justify-between px-4 pb-3 border-b" style="border-color: var(--border);">
-        <h3 class="font-semibold text-accent flex items-center gap-2"
-          :style="`font-size: ${fontSize * 1.1}rem;`">
+  <!-- Version Selector Drawer (Bottom Sheet) - Uses reusable drawer pattern -->
+  <dialog x-ref="versionDialog"
+    @close="versionModal.show = false"
+    @click="if ($event.target === $el) $el.close()"
+    class="drawer-dialog">
+    <div class="drawer-panel-container">
+      <div class="drawer-handle"></div>
+      <div class="drawer-header">
+        <h3 class="drawer-title" :style="`font-size: ${fontSize * 1.1}rem;`">
           <span>📚</span>
           <span>選擇譯本</span>
         </h3>
-        <button @click="versionModal.show = false"
-          class="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0">
+        <button @click="$refs.versionDialog.close()" class="drawer-close-btn">
           <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <!-- Tab Switcher -->
+      <!-- Custom Tab Switcher (instead of standard drawer-header) -->
       <div class="flex border-b px-4" style="border-color: var(--border);">
         <button @click="versionModal.tab = 'select'"
           :class="versionModal.tab === 'select' ? 'border-b-2 border-amber-600 text-accent' : 'text-secondary'"
@@ -1410,144 +1335,146 @@
           對照設定
         </button>
       </div>
-      <!-- Content: Select Tab -->
-      <div x-show="versionModal.tab === 'select'" class="flex-1 overflow-y-auto p-4 scrollbar-thin">
-        <div class="space-y-2">
-          <template x-for="version in availableVersions" :key="version.id">
-            <div class="p-3 rounded-lg border border-custom transition-colors"
-              :class="selectedVersionId === version.id ? 'bg-primary border-amber-600' : 'hover:bg-primary'">
-              <div class="flex items-center justify-between">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-medium text-primary" :style="`font-size: ${fontSize}rem;`" x-text="version.name"></span>
+      <div class="drawer-content scrollbar-thin" :style="`font-size: ${fontSize}rem;`">
+        <!-- Content: Select Tab -->
+        <div x-show="versionModal.tab === 'select'" class="p-4 pt-0">
+          <div class="space-y-2">
+            <template x-for="version in availableVersions" :key="version.id">
+              <div class="p-3 rounded-lg border border-custom transition-colors"
+                :class="selectedVersionId === version.id ? 'bg-primary border-amber-600' : 'hover:bg-primary'">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-medium text-primary" :style="`font-size: ${fontSize}rem;`" x-text="version.name"></span>
+                      <span class="px-1.5 py-0.5 rounded text-xs"
+                        :style="`font-size: ${fontSize * 0.7}rem; background-color: var(--bg-secondary); color: var(--text-secondary);`"
+                        x-text="version.lang"></span>
+                      <template x-if="selectedVersionId === version.id">
+                        <span class="px-1.5 py-0.5 rounded bg-amber-600 text-white"
+                          :style="`font-size: ${fontSize * 0.75}rem;`">使用中</span>
+                      </template>
+                      <template x-if="isVersionCached(version.id) && selectedVersionId !== version.id">
+                        <span class="px-1.5 py-0.5 rounded bg-green-600 text-white"
+                          :style="`font-size: ${fontSize * 0.75}rem;`">已下載</span>
+                      </template>
+                    </div>
+                    <p class="text-secondary mt-0.5" :style="`font-size: ${fontSize * 0.85}rem;`" x-text="version.size"></p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <!-- Delete button for cached versions (not currently selected) -->
+                    <button x-show="isVersionCached(version.id) && selectedVersionId !== version.id"
+                      @click="deleteVersion(version.id)"
+                      class="p-1.5 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      title="刪除快取">
+                      <span :style="`font-size: ${fontSize * 0.85}rem;`">🗑️</span>
+                    </button>
+                    <!-- Select/Download button -->
+                    <button @click="isVersionCached(version.id) ? selectVersion(version.id) : downloadVersionOnly(version.id)"
+                      :disabled="versionModal.downloading === version.id || selectedVersionId === version.id"
+                      class="px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      :class="selectedVersionId === version.id ? 'bg-secondary text-secondary cursor-default' : 'text-white'"
+                      :style="`font-size: ${fontSize * 0.85}rem; ` + (selectedVersionId !== version.id ? 'background-color: var(--accent);' : '')">
+                      <span x-show="versionModal.downloading === version.id" class="flex items-center gap-1">
+                        <span class="animate-spin">⏳</span> 下載中...
+                      </span>
+                      <span x-show="versionModal.downloading !== version.id">
+                        <span x-text="selectedVersionId === version.id ? '使用中' : (isVersionCached(version.id) ? '切換' : '下載')"></span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+        <!-- Content: Compare Tab -->
+        <div x-show="versionModal.tab === 'compare'" class="p-4 pt-0">
+          <p class="text-secondary mb-3" :style="`font-size: ${fontSize * 0.85}rem;`">
+            選擇並啟用對照的譯本，並拖曳調整顯示順序
+          </p>
+          <!-- Enabled versions (reorderable) -->
+          <div x-show="compareVersionOrder.length > 0" class="mb-4">
+            <h4 class="font-medium text-accent mb-2" :style="`font-size: ${fontSize * 0.9}rem;`">已啟用 (<span x-text="compareVersionOrder.length"></span>)</h4>
+            <div class="space-y-1.5">
+              <template x-for="(versionId, idx) in compareVersionOrder" :key="'enabled-' + versionId">
+                <div class="p-2.5 rounded-lg border transition-all flex items-center gap-2"
+                  :class="versionModal.draggedVersionId === versionId ? 'border-amber-600 bg-primary opacity-50' : 'border-custom hover:border-accent-light'"
+                  draggable="true"
+                  @dragstart="versionModal.draggedVersionId = versionId"
+                  @dragend="versionModal.draggedVersionId = null"
+                  @dragover.prevent
+                  @drop.prevent="reorderCompareVersion(versionId, idx)">
+                  <!-- Drag handle -->
+                  <span class="cursor-move text-secondary select-none" style="touch-action: none;">⠿</span>
+                  <!-- Version info -->
+                  <div class="flex-1 flex items-center gap-2 flex-wrap">
+                    <span class="font-medium text-primary" :style="`font-size: ${fontSize * 0.95}rem;`"
+                      x-text="availableVersions.find(v => v.id === versionId)?.name || versionId"></span>
+                    <span class="px-1.5 py-0.5 rounded text-xs"
+                      :style="`font-size: ${fontSize * 0.7}rem; background-color: var(--bg-secondary); color: var(--text-secondary);`"
+                      x-text="availableVersions.find(v => v.id === versionId)?.lang"></span>
+                  </div>
+                  <!-- Move buttons for touch devices -->
+                  <button @click="moveCompareVersion(idx, -1)" :disabled="idx === 0"
+                    class="p-1 rounded hover:bg-secondary disabled:opacity-30 text-secondary transition-colors" title="上移">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                    </svg>
+                  </button>
+                  <button @click="moveCompareVersion(idx, 1)" :disabled="idx === compareVersionOrder.length - 1"
+                    class="p-1 rounded hover:bg-secondary disabled:opacity-30 text-secondary transition-colors" title="下移">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+                  <!-- Toggle off -->
+                  <button @click="toggleCompareVersion(versionId)"
+                    class="p-1.5 rounded-lg transition-colors text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30" title="移除">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+          <!-- Available cached versions to add -->
+          <div x-show="getAvailableCompareVersions().length > 0">
+            <h4 class="font-medium text-secondary mb-2" :style="`font-size: ${fontSize * 0.9}rem;`">可加入對照</h4>
+            <div class="space-y-1.5">
+              <template x-for="version in getAvailableCompareVersions()" :key="'available-' + version.id">
+                <div class="p-2.5 rounded-lg border border-custom hover:border-accent-light transition-colors flex items-center gap-2">
+                  <div class="flex-1 flex items-center gap-2 flex-wrap">
+                    <span class="font-medium text-primary" :style="`font-size: ${fontSize * 0.95}rem;`" x-text="version.name"></span>
                     <span class="px-1.5 py-0.5 rounded text-xs"
                       :style="`font-size: ${fontSize * 0.7}rem; background-color: var(--bg-secondary); color: var(--text-secondary);`"
                       x-text="version.lang"></span>
-                    <template x-if="selectedVersionId === version.id">
-                      <span class="px-1.5 py-0.5 rounded bg-amber-600 text-white"
-                        :style="`font-size: ${fontSize * 0.75}rem;`">使用中</span>
-                    </template>
-                    <template x-if="isVersionCached(version.id) && selectedVersionId !== version.id">
-                      <span class="px-1.5 py-0.5 rounded bg-green-600 text-white"
-                        :style="`font-size: ${fontSize * 0.75}rem;`">已下載</span>
-                    </template>
                   </div>
-                  <p class="text-secondary mt-0.5" :style="`font-size: ${fontSize * 0.85}rem;`" x-text="version.size"></p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <!-- Delete button for cached versions (not currently selected) -->
-                  <button x-show="isVersionCached(version.id) && selectedVersionId !== version.id"
-                    @click="deleteVersion(version.id)"
-                    class="p-1.5 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    title="刪除快取">
-                    <span :style="`font-size: ${fontSize * 0.85}rem;`">🗑️</span>
-                  </button>
-                  <!-- Select/Download button -->
-                  <button @click="isVersionCached(version.id) ? selectVersion(version.id) : downloadVersionOnly(version.id)"
-                    :disabled="versionModal.downloading === version.id || selectedVersionId === version.id"
-                    class="px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                    :class="selectedVersionId === version.id ? 'bg-secondary text-secondary cursor-default' : 'text-white'"
-                    :style="`font-size: ${fontSize * 0.85}rem; ` + (selectedVersionId !== version.id ? 'background-color: var(--accent);' : '')">
-                    <span x-show="versionModal.downloading === version.id" class="flex items-center gap-1">
-                      <span class="animate-spin">⏳</span> 下載中...
-                    </span>
-                    <span x-show="versionModal.downloading !== version.id">
-                      <span x-text="selectedVersionId === version.id ? '使用中' : (isVersionCached(version.id) ? '切換' : '下載')"></span>
-                    </span>
+                  <button @click="toggleCompareVersion(version.id)"
+                    class="p-1.5 rounded-lg transition-colors text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30" title="加入對照">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
                   </button>
                 </div>
-              </div>
+              </template>
             </div>
-          </template>
-        </div>
-      </div>
-      <!-- Content: Compare Tab -->
-      <div x-show="versionModal.tab === 'compare'" class="flex-1 overflow-y-auto p-4 scrollbar-thin">
-        <p class="text-secondary mb-3" :style="`font-size: ${fontSize * 0.85}rem;`">
-          選擇���啟用對照的譯本，並拖曳調整顯示順序
-        </p>
-        <!-- Enabled versions (reorderable) -->
-        <div x-show="compareVersionOrder.length > 0" class="mb-4">
-          <h4 class="font-medium text-accent mb-2" :style="`font-size: ${fontSize * 0.9}rem;`">已啟用 (<span x-text="compareVersionOrder.length"></span>)</h4>
-          <div class="space-y-1.5">
-            <template x-for="(versionId, idx) in compareVersionOrder" :key="'enabled-' + versionId">
-              <div class="p-2.5 rounded-lg border transition-all flex items-center gap-2"
-                :class="versionModal.draggedVersionId === versionId ? 'border-amber-600 bg-primary opacity-50' : 'border-custom hover:border-accent-light'"
-                draggable="true"
-                @dragstart="versionModal.draggedVersionId = versionId"
-                @dragend="versionModal.draggedVersionId = null"
-                @dragover.prevent
-                @drop.prevent="reorderCompareVersion(versionId, idx)">
-                <!-- Drag handle -->
-                <span class="cursor-move text-secondary select-none" style="touch-action: none;">⠿</span>
-                <!-- Version info -->
-                <div class="flex-1 flex items-center gap-2 flex-wrap">
-                  <span class="font-medium text-primary" :style="`font-size: ${fontSize * 0.95}rem;`"
-                    x-text="availableVersions.find(v => v.id === versionId)?.name || versionId"></span>
-                  <span class="px-1.5 py-0.5 rounded text-xs"
-                    :style="`font-size: ${fontSize * 0.7}rem; background-color: var(--bg-secondary); color: var(--text-secondary);`"
-                    x-text="availableVersions.find(v => v.id === versionId)?.lang"></span>
-                </div>
-                <!-- Move buttons for touch devices -->
-                <button @click="moveCompareVersion(idx, -1)" :disabled="idx === 0"
-                  class="p-1 rounded hover:bg-secondary disabled:opacity-30 text-secondary transition-colors" title="上移">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
-                  </svg>
-                </button>
-                <button @click="moveCompareVersion(idx, 1)" :disabled="idx === compareVersionOrder.length - 1"
-                  class="p-1 rounded hover:bg-secondary disabled:opacity-30 text-secondary transition-colors" title="下移">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
-                <!-- Toggle off -->
-                <button @click="toggleCompareVersion(versionId)"
-                  class="p-1.5 rounded-lg transition-colors text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30" title="移除">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-            </template>
           </div>
-        </div>
-        <!-- Available cached versions to add -->
-        <div x-show="getAvailableCompareVersions().length > 0">
-          <h4 class="font-medium text-secondary mb-2" :style="`font-size: ${fontSize * 0.9}rem;`">可加入對照</h4>
-          <div class="space-y-1.5">
-            <template x-for="version in getAvailableCompareVersions()" :key="'available-' + version.id">
-              <div class="p-2.5 rounded-lg border border-custom hover:border-accent-light transition-colors flex items-center gap-2">
-                <div class="flex-1 flex items-center gap-2 flex-wrap">
-                  <span class="font-medium text-primary" :style="`font-size: ${fontSize * 0.95}rem;`" x-text="version.name"></span>
-                  <span class="px-1.5 py-0.5 rounded text-xs"
-                    :style="`font-size: ${fontSize * 0.7}rem; background-color: var(--bg-secondary); color: var(--text-secondary);`"
-                    x-text="version.lang"></span>
-                </div>
-                <button @click="toggleCompareVersion(version.id)"
-                  class="p-1.5 rounded-lg transition-colors text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30" title="加入對照">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                  </svg>
-                </button>
-              </div>
-            </template>
+          <!-- No cached versions message -->
+          <div x-show="cachedVersions.length <= 1" class="text-center py-8">
+            <span class="text-4xl mb-3 block">📥</span>
+            <p class="text-secondary" :style="`font-size: ${fontSize * 0.9}rem;`">
+              請先在「譯本選擇」頁籤下載其他譯本
+            </p>
           </div>
-        </div>
-        <!-- No cached versions message -->
-        <div x-show="cachedVersions.length <= 1" class="text-center py-8">
-          <span class="text-4xl mb-3 block">📥</span>
-          <p class="text-secondary" :style="`font-size: ${fontSize * 0.9}rem;`">
-            請先在「譯本選擇」頁籤下載其他譯本
-          </p>
         </div>
       </div>
       <!-- Footer -->
-      <div class="px-4 py-3 border-t" style="border-color: var(--border);">
+      <div class="drawer-footer">
         <p class="text-secondary text-center" :style="`font-size: ${fontSize * 0.85}rem;`">已快取 <span x-text="cachedVersions.length"></span> 個譯本</p>
       </div>
     </div>
-  </div>
+  </dialog>
 
 
     <div id="pwa-toast" role="alert" aria-labelledby="toast-message"
@@ -2317,10 +2244,10 @@
         // Check if any drawer/modal is open (to prevent background scroll)
         get isAnyDrawerOpen() {
           return this.settingsModal.show ||
-                 this.versionModal.show ||
+                 (this.$refs.versionDialog && this.$refs.versionDialog.open) ||
+                 (this.$refs.snDialog && this.$refs.snDialog.open) ||
+                 (this.$refs.verseDialog && this.$refs.verseDialog.open) ||
                  this.navModal.show ||
-                 this.verseModal.show ||
-                 this.snModal.show ||
                  this.historyModal.show ||
                  this.headerActionsModal.show;
         },
@@ -2670,7 +2597,7 @@
           // Reset pending values and close
           this.navModal.pendingBook = null;
           this.navModal.pendingChapter = null;
-          this.navModal.show = false;
+          this.$refs.navDialog?.close();
         },
 
         onBookChange() {
@@ -2819,6 +2746,7 @@
         openHeaderActionsModal() {
           this.headerActionsModal.show = true;
           this.$refs.settingsDialog?.close();
+          this.$refs.headerActionsDialog.showModal();
         },
 
         toggleHeaderActionVisibility(actionId) {
@@ -2928,6 +2856,7 @@
               this.$refs.titleInput.focus();
             }
           });
+          this.$refs.verseDialog.showModal();
         },
 
         openNoteModal(verse) {
@@ -2948,6 +2877,7 @@
               this.$refs.noteInput.focus();
             }
           });
+          this.$refs.verseDialog.showModal();
         },
 
         openHighlightModal(verse) {
@@ -2964,28 +2894,13 @@
             editName: '',
             editColor: ''
           };
+          this.$refs.verseDialog.showModal();
         },
 
         closeVerseModal() {
-          // Re-select the verse to keep the widget open after drawer closes
-          const verse = this.verseModal.verse;
-          if (verse) {
-            // Delay re-selection to run after click.away handlers
-            this.$nextTick(() => {
-              this.verseActions = {
-                show: true,
-                verse: verse
-              };
-            });
+          if (this.$refs.verseDialog) {
+            this.$refs.verseDialog.close();
           }
-          this.verseModal.show = false;
-          this.verseModal.type = null;
-          this.verseModal.title = '';
-          this.verseModal.note = '';
-          this.verseModal.selectedHighlightId = null;
-          this.verseModal.editingId = null;
-          this.verseModal.editName = '';
-          this.verseModal.editColor = '';
         },
 
         saveTitle() {
@@ -3751,6 +3666,7 @@
           this.snModal.code = code;
           this.snModal.definition = '';
           this.snModal.loading = true;
+          this.$refs.snDialog.showModal();
 
           // Determine dictionary based on selected version's language
           // Chinese versions start with 'zh', use Chinese SN dictionary
