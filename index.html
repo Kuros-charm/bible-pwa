@@ -57,7 +57,7 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .verse-item { opacity: 0; animation: fadeIn 0.4s ease-out forwards; }
+    .verse-item { opacity: 0; animation: fadeIn 0.4s ease-out forwards; padding: 0rem 0.5rem; }
 
     @keyframes verseHighlight {
       0% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 20px rgba(139, 69, 19, 0.3); }
@@ -71,7 +71,8 @@
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 200; }
     .modal-content { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 400px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
     .verse-container { user-select: none; -webkit-user-select: none; cursor: pointer; transition: box-shadow 0.2s ease, border-radius 0.2s ease; }
-    .verse-selected { box-shadow: inset 0 0 0 2px var(--accent-light), inset 0 2px 8px rgba(139, 69, 19, 0.15); border-radius: 0.5rem; padding: 0.25rem 0.5rem; margin: -0.25rem -0.5rem; }
+    .verse-selected { }
+    .verse-selected .verse-num-selected { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
 
     /* === Dynamic content styles (used in x-html, can't use Tailwind) === */
     .sn-code { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; transition: color 0.2s; margin: 0 0.15em; }
@@ -243,8 +244,8 @@
               <div class="verse-item"
                 :data-verse-num="verse.verseNum"
                 :class="{ 'verse-selected': verseActions.show && verseActions.verse?.ref === verse.ref }"
-                :style="`animation-delay: ${index * 50}ms; font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + (getHighlightColor(verse.ref) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)}; border-radius: 0.25rem; padding: 0.25rem 0.5rem; margin: -0.25rem -0.5rem;` : '')">
-                <sup :class="getHighlightColor(verse.ref) ? '' : 'text-accent'" class="font-medium opacity-70" style="font-size: 0.75em; margin-right: 0em;" x-text="verse.verseNum"></sup>
+                :style="`animation-delay: ${index * 50}ms; font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + (getHighlightColor(verse.ref) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '')">
+                <sup :class="[getHighlightColor(verse.ref) ? '' : 'text-accent', (verseActions.show && verseActions.verse?.ref === verse.ref && !getHighlightColor(verse.ref)) ? 'verse-num-selected' : '']" class="font-medium opacity-70" :style="`font-size: 0.75em; margin-right: 0em;` + ((verseActions.show && verseActions.verse?.ref === verse.ref && getHighlightColor(verse.ref)) ? `background-color: ${getHighlightTextColor(verse.ref)}; color: ${getHighlightColor(verse.ref)}; box-shadow: -0.25em 0 0 ${getHighlightTextColor(verse.ref)}, 0.25em 0 0 ${getHighlightTextColor(verse.ref)};` : '')" x-text="verse.verseNum"></sup>
                 <span x-html="renderVerseText(verse.text)"></span>
                 <button x-show="notes[verse.ref]" @click.stop="openNoteModal(verse)"
                   class="inline-flex ml-1 opacity-70 hover:opacity-100" title="查看筆記">✏️</button>
@@ -356,11 +357,11 @@
       @click.stop>
 
       <!-- Verse Reference Header -->
-      <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+      <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between h-12">
         <span class="font-medium" x-text="verseActions.verse ? formatRef(verseActions.verse.ref) : ''"></span>
         <!-- Highlight indicator -->
-        <div x-show="verseActions.verse && verseHighlights[verseActions.verse.ref] && highlightDefs[verseHighlights[verseActions.verse.ref]]"
-          class="flex items-center gap-2 text-sm px-2 py-1 rounded-full"
+        <div class="flex items-center gap-2 text-sm px-2 py-1 rounded-full"
+          :class="(verseActions.verse && verseHighlights[verseActions.verse.ref] && highlightDefs[verseHighlights[verseActions.verse.ref]]) ? '' : 'invisible'"
           :style="verseActions.verse ? `background-color: ${getHighlightColor(verseActions.verse.ref)}cc; color: ${getHighlightTextColor(verseActions.verse.ref)};` : ''">
           <span x-text="verseActions.verse && highlightDefs[verseHighlights[verseActions.verse.ref]]?.name"></span>
         </div>
@@ -2083,7 +2084,7 @@
               rawText = await response.text();
 
               // Cache the data in IndexedDB
-              this.loadingMessage = '正在儲存快取...';
+              this.loadingMessage = '正在儲存���取...';
               this.loadingSubMessage = '下次載入將更快';
               try {
                 await idbKeyval.set(`bible_version_${this.selectedVersionId}`, rawText);
@@ -2360,7 +2361,6 @@
         openTitleModal() {
           const verse = this.verseActions.verse;
           this.openTitleModalForVerse(verse);
-          this.hideVerseActions();
         },
 
         openTitleModalForVerse(verse) {
@@ -2395,7 +2395,6 @@
             editName: '',
             editColor: ''
           };
-          this.hideVerseActions();
           this.$nextTick(() => {
             if (this.$refs.noteInput) {
               this.$refs.noteInput.focus();
@@ -2406,7 +2405,6 @@
         openHighlightModal(verse) {
           const v = verse || this.verseActions.verse;
           if (!v) return;
-          this.hideVerseActions();
           this.verseModal = {
             show: true,
             type: 'highlight',
@@ -2421,6 +2419,17 @@
         },
 
         closeVerseModal() {
+          // Re-select the verse to keep the widget open after drawer closes
+          const verse = this.verseModal.verse;
+          if (verse) {
+            // Delay re-selection to run after click.away handlers
+            this.$nextTick(() => {
+              this.verseActions = {
+                show: true,
+                verse: verse
+              };
+            });
+          }
           this.verseModal.show = false;
           this.verseModal.type = null;
           this.verseModal.title = '';
@@ -2462,14 +2471,12 @@
           if (this.compareVerseRef === verse.ref) {
             this.compareVerseRef = null;
             this.compareVerses = [];
-            this.hideVerseActions();
             return;
           }
 
           // Load comparison from enabled versions in user-configured order
           this.compareVerseRef = verse.ref;
           this.compareVerses = [];
-          this.hideVerseActions();
 
           // Use user's compare order, falling back to all cached versions (excluding current) if empty
           let versionsToCompare = this.compareVersionOrder.filter(id =>
