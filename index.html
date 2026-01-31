@@ -66,8 +66,6 @@
     .modal-content { background-color: var(--bg-primary); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; width: 90%; max-width: 400px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); }
     .verse-container { user-select: none; -webkit-user-select: none; cursor: pointer; transition: box-shadow 0.2s ease, border-radius 0.2s ease; }
     .verse-container.tts-playing { pointer-events: none; cursor: default; }
-    .verse-selected sup { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
-    .verse-tts sup { background-color: var(--accent); color: var(--bg-primary); box-shadow: -0.25em 0 0 var(--accent), 0.25em 0 0 var(--accent); }
 
     /* === Dynamic content styles (used in x-html, can't use Tailwind) === */
     .sn-code { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; transition: color 0.2s; margin: 0 0.15em; }
@@ -485,7 +483,11 @@
                   'verse-tts': (tts.playing || tts.paused) && tts.currentVerseIndex === index
                 }"
                 :style="`font-size: ${fontSize}rem; line-height: ${lineHeight}; font-family: ${currentFontFamily};` + (getHighlightColor(verse.ref) ? `background-color: ${getHighlightColor(verse.ref)}cc; color: ${getHighlightTextColor(verse.ref)};` : '')">
-                <sup :class="[getHighlightColor(verse.ref) && !(tts.playing || tts.paused) ? '' : 'text-accent', (verseActions.show && verseActions.verse?.ref === verse.ref && !getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? 'verse-num-selected' : '']" class="font-medium opacity-70" :style="`font-size: 0.75em; margin-right: 0em;` + ((verseActions.show && verseActions.verse?.ref === verse.ref && getHighlightColor(verse.ref) && !(tts.playing || tts.paused)) ? `background-color: ${getHighlightTextColor(verse.ref)}; color: ${getHighlightColor(verse.ref)}; box-shadow: -0.25em 0 0 ${getHighlightTextColor(verse.ref)}, 0.25em 0 0 ${getHighlightTextColor(verse.ref)};` : '')" x-text="verse.verseNum"></sup>
+                <sup
+                  class="font-medium opacity-70"
+                  :style="`font-size: 0.75em; margin-right: 0em;` + (getVerseNumBgColor(verse.ref) ? `background-color: ${getVerseNumBgColor(verse.ref)}; color: ${getVerseNumColor(verse.ref)}; box-shadow: -0.25em 0 0 ${getVerseNumBoxShadowColor(verse.ref)}, 0.25em 0 0 ${getVerseNumBoxShadowColor(verse.ref)};` : `color: ${getVerseNumColor(verse.ref)}`)"
+                  x-text="verse.verseNum"
+                ></sup>
                 <span x-html="renderVerseText(verse.text)"></span>
                 <button x-show="notes[verse.ref] && !(tts.playing || tts.paused)" @click.stop="openNoteModal(verse)"
                   class="inline-flex ml-1 opacity-70 hover:opacity-100" title="查看筆記">✏️</button>
@@ -3428,6 +3430,63 @@
 
           // Return black for light backgrounds, white for dark backgrounds
           return luminance > 0.6 ? '#000000' : '#ffffff';
+        },
+
+        getVerseNumBgColor(verseRef) {
+          const highlightColor = this.getHighlightColor(verseRef);
+          const isSelected = this.verseActions.show && this.verseActions.verse?.ref === verseRef;
+          const idx = this.currentVerses.findIndex(v => v.ref === verseRef);
+          const isTtsPlaying = idx !== -1 && (this.tts.playing || this.tts.paused) && this.tts.currentVerseIndex === idx;
+
+          if (highlightColor) {
+            if (isSelected || isTtsPlaying) {
+              return this.getHighlightTextColor(verseRef);
+            }
+            return highlightColor;
+          }
+
+          if (isSelected || isTtsPlaying) {
+            return 'var(--accent)';
+          }
+          return null;
+        },
+
+        getVerseNumColor(verseRef) {
+          const highlightColor = this.getHighlightColor(verseRef);
+          const isSelected = this.verseActions.show && this.verseActions.verse?.ref === verseRef;
+          const idx = this.currentVerses.findIndex(v => v.ref === verseRef);
+          const isTtsPlaying = idx !== -1 && (this.tts.playing || this.tts.paused) && this.tts.currentVerseIndex === idx;
+
+          if (highlightColor) {
+            if (isSelected || isTtsPlaying) {
+              return highlightColor;
+            }
+            return this.getHighlightTextColor(verseRef);
+          }
+
+          if (isSelected || isTtsPlaying) {
+            return 'var(--bg-primary)';
+          }
+          return 'var(--accent)';
+        },
+
+        getVerseNumBoxShadowColor(verseRef) {
+          const highlightColor = this.getHighlightColor(verseRef);
+          const isSelected = this.verseActions.show && this.verseActions.verse?.ref === verseRef;
+          const idx = this.currentVerses.findIndex(v => v.ref === verseRef);
+          const isTtsPlaying = idx !== -1 && (this.tts.playing || this.tts.paused) && this.tts.currentVerseIndex === idx;
+
+          if (highlightColor) {
+            if (isSelected || isTtsPlaying) {
+              return this.getHighlightTextColor(verseRef);
+            }
+            return null;
+          }
+
+          if (isSelected || isTtsPlaying) {
+            return 'var(--accent)';
+          }
+          return null;
         },
 
         // Settings & File System Access API methods
